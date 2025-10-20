@@ -2,7 +2,7 @@
 ## ⚠️ Проект еще в работе ⚠️
 ## Описание
 PZEM-6L24 Monitor - это системный сервис для мониторинга электроэнергии с помощью датчиков PZEM-6L24 через интерфейс UART / Modbus-RTU.
-На основе [PZEM_004T_Systemd](https://github.com/akarnaukh/PZEM_004T_Systemd).\n
+На основе [PZEM_004T_Systemd](https://github.com/akarnaukh/PZEM_004T_Systemd).
 Сервис предназначен для работы на embedded Linux системах (Raspberry Pi, Orange Pi, Luckfox Pico и др.).
 
 
