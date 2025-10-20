@@ -1,5 +1,5 @@
 # PZEM-004T Monitor & Log Service
-## ⚠️В работе ⚠️
+## ⚠️ Проект еще в работе ⚠️
 ## Описание
 PZEM-6L24 Monitor - это системный сервис для мониторинга электроэнергии с помощью датчиков PZEM-6L24 через интерфейс UART / Modbus-RTU.
 На основе [PZEM_004T_Systemd](https://github.com/akarnaukh/PZEM_004T_Systemd).
