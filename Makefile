@@ -1,4 +1,4 @@
-# Makefile for PZEM-004T Monitor Service
+# Makefile for PZEM-6L24 Monitor Service
 
 # Compiler and flags
 #СС = arm-linux-gnueabihf-gcc
