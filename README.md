@@ -39,7 +39,7 @@ cd ./PZEM_6L24_Systemd
 src/pzem_monitor.h - заголовочный файл
 src/pzem_monitor.c - основной код
 config/pzem_default.conf - конфигурация по умолчанию
-systemd/pzem@.service - systemd сервис
+systemd/pzem3@.service - systemd сервис
 Makefile - система сборки
 ```
  - Сборка проекта:
@@ -64,8 +64,8 @@ sudo make uninstall
 
 # Логи и конфиги не удаляються автоматически
 # Ручное удаление логов и конфигов
-sudo rm -rf /etc/pzem
-sudo rm -rf /var/log/pzem # или как указано в конфигурации
+sudo rm -rf /etc/pzem3
+sudo rm -rf /var/log/pzem3 # или как указано в конфигурации
 ```
 
 ## Настройка конфигурации
@@ -81,7 +81,7 @@ slave_addr = 1
 poll_interval_ms = 500 
 
 # Logging settings
-log_dir = /var/log/pzem
+log_dir = /var/log/pzem3
 # Размер буфера логов в строках (1-25)
 log_buffer_size = 10
 
@@ -89,9 +89,9 @@ log_buffer_size = 10
 # Чувствительность, на какие значения должны измениться данные
 # Чтобы считать, что они изменились
 voltage_sensitivity = 0.1
-current_sensitivity = 0.001
-frequency_sensitivity = 0.1
-power_sensitivity = 1.0
+current_sensitivity = 0.01
+frequency_sensitivity = 0.01
+power_sensitivity = 0.1
 
 # Voltage thresholds (0 = disabled)
 # Пороговые значения, по которым выставляются статусы H, L, N
@@ -108,37 +108,34 @@ frequency_low_alarm = 48
 ```
 - Создание дополнительных конфигураций:
 ```bash
-sudo cp /etc/pzem/default.conf /etc/pzem/phase1.conf
-sudo cp /etc/pzem/default.conf /etc/pzem/phase2.conf
-sudo nano /etc/pzem/phase1.conf  # редактирование настроек
+sudo cp /etc/pzem3/default.conf /etc/pzem3/input1.conf
+sudo nano /etc/pzem3/input1.conf  # редактирование настроек
 ```
 
 ## Управление сервисом
 ```bash
 # Запуск сервиса с разными конфигурациями
-sudo systemctl start pzem@default
-sudo systemctl start pzem@phase1
-sudo systemctl start pzem@phase2
+sudo systemctl start pzem3@default
+sudo systemctl start pzem3@input1
 
 # Автозагрузка при старте системы
-sudo systemctl enable pzem@phase1
+sudo systemctl enable pzem3@input1
 
 # Просмотр статуса
-sudo systemctl status pzem@phase1
+sudo systemctl status pzem3@input1
 
 # Просмотр логов
-sudo journalctl -u pzem@phase1 -f
+sudo journalctl -u pzem3@input1 -f
 
 # Остановка сервиса
-sudo systemctl stop pzem@phase1
+sudo systemctl stop pzem3@input1
 ```
 ## Структура лог-файлов
-- Лог-файлы создаются в директории указанной в конфигурации (default /var/log/pzem/) в формате: `pzem_<config>_YYYY-MM-DD.log`
+- Лог-файлы создаются в директории указанной в конфигурации (default /var/log/pzem3/) в формате: `pzem3_<config>_YYYY-MM-DD.log`
 ```text
-/var/log/pzem/
-├── pzem_default_2024-01-15.log
-├── pzem_phase1_2024-01-15.log
-└── pzem_phase2_2024-01-15.log
+/var/log/pzem3/
+├── pzem3_default_2024-01-15.log
+└── pzem3_input1_2024-01-15.log
 ```
 
 - Формат данных в логе (CSV):
@@ -160,28 +157,27 @@ sudo systemctl stop pzem@phase1
 
 - Сервис создает named pipe для реальной передачи данных:
 ```bash
-# Чтение данных в реальном времени ( /tmp/pzem_data_{config_name} )
-tail -f /tmp/pzem_data_phase1
+# Чтение данных в реальном времени ( /tmp/pzem3_data_{config_name} )
+tail -f /tmp/pzem3_data_input1
 
 # Использование в скриптах
 while read line; do
     echo "Received: $line"
     # Обработка данных...
-done < /tmp/pzem_data_phase1
+done < /tmp/pzem3_data_input1
 ```
 ## Примеры использования
 
 ### Для мониторинга одной фазы:
 ```bash
-sudo systemctl start pzem@default
-sudo journalctl -u pzem@default -f
+sudo systemctl start pzem3@default
+sudo journalctl -u pzem3@default -f
 ```
 ### Для трехфазной системы:
 ```bash
-sudo systemctl start pzem@phase1
-sudo systemctl start pzem@phase2  
-sudo systemctl start pzem@phase3
-sudo systemctl enable pzem@phase1 pzem@phase2 pzem@phase3
+sudo systemctl start pzem3@input1
+sudo systemctl start pzem3@input2  
+sudo systemctl enable pzem3@input1 pzem3@input2
 ```
 ### Для embedded устройства (минимальная нагрузка):
 ```ini
@@ -201,7 +197,7 @@ log_buffer_size = 10
 ### Нет данных в логах
 - Проверьте подключение PZEM-6L24
 - Убедитесь в правильности slave address
-- Проверьте логи: `sudo journalctl -u pzem@{config_name}`
+- Проверьте логи: `sudo journalctl -u pzem3@{config_name}`
 ### Высокая нагрузка CPU
 - Увеличьте `poll_interval_ms` в конфигурации (рекомендуется 500-1000ms)
 ## Authors
