@@ -36,7 +36,7 @@ THE SOFTWARE.
 #include <syslog.h>
 #include <fcntl.h>      // для O_NONBLOCK
 
-#define PZEM_FIFO_PATH "/tmp/pzem_data_%s"  // %s будет заменен на config_name
+#define PZEM_FIFO_PATH "/tmp/pzem3_data_%s"  // %s будет заменен на config_name
 
 // Структура для хранения конфигурации
 typedef struct {
