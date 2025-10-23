@@ -151,7 +151,7 @@ void get_current_time(char *time_str, size_t size) {
 void get_log_file_path(char *path, size_t size, const char *log_dir) {
     char date_str[32];
     get_current_date(date_str, sizeof(date_str));
-    snprintf(path, size, "%s/pzem_%s_%s.log", log_dir, config_name, date_str);
+    snprintf(path, size, "%s/pzem3_%s_%s.log", log_dir, config_name, date_str);
 }
 
 // Функция инициализации буфера логов
@@ -426,7 +426,7 @@ int load_config(const char *config_file, pzem_config_t *config) {
     config->baudrate = 9600;
     config->slave_addr = 1;
     config->poll_interval_ms = 500;
-    strcpy(config->log_dir, "/var/log/pzem");
+    strcpy(config->log_dir, "/var/log/pzem3");
     config->log_buffer_size = 20;
     
     // Чувствительность по умолчанию
@@ -609,6 +609,10 @@ int init_modbus_connection(const pzem_config_t *config) {
     return 0;
 }
 
+float lsbVal (uint16_t dat) {
+    return ((dat & 0xff) << 8) | (dat >> 8);
+}
+
 // Функция чтения данных с PZEM (добавляем чтение мощности)
 int read_pzem_data(pzem_data_t *data) {
     uint16_t tab_reg[10];
@@ -696,7 +700,7 @@ void safe_reconnect(const pzem_config_t *config) {
 
 int main(int argc, char *argv[]) {
     pzem_data_t current_data, previous_data;
-    const char *config_file = "/etc/pzem/default.conf";
+    const char *config_file = "/etc/pzem3/default.conf";
     
     if (argc > 1) {
         config_file = argv[1];
@@ -718,7 +722,7 @@ int main(int argc, char *argv[]) {
     syslog(LOG_INFO, "PZEM-004T Monitor starting with config: %s", config_file);
 
     // Создаем FIFO для передачи данных
-    snprintf(fifo_path, sizeof(fifo_path), "/tmp/pzem_data_%s", config_name);
+    snprintf(fifo_path, sizeof(fifo_path), "/tmp/pzem3_data_%s", config_name);
     if (init_data_fifo(fifo_path) == -1) {
 	syslog(LOG_WARNING, "Failed to create data FIFO, data broadcasting disabled");
     } else {
