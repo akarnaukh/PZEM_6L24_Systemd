@@ -61,7 +61,7 @@ templates: | $(CONFIGDIR) $(SYSTEMDDIR)
 	@echo "tty_port = /dev/ttyS1" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "baudrate = 9600" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "slave_addr = 1" >> $(CONFIGDIR)/pzem3_default.conf
-	@echo "poll_interval_ms = 500 # Диапазон периода 150 - 10000мс" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "poll_interval_ms = 500 # Диапазон периода 200 - 10000мс" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "# Logging settings" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "log_dir = /var/log/pzem3" >> $(CONFIGDIR)/pzem3_default.conf

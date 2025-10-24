@@ -800,9 +800,9 @@ int load_config(const char *config_file, pzem_config_t *config) {
     int config_changed = 0;
     
     // Проверка интервала опроса
-    if (config->poll_interval_ms < 150) {
-        syslog(LOG_WARNING, "Poll interval too small (%dms), setting to 150ms", config->poll_interval_ms);
-        config->poll_interval_ms = 150;
+    if (config->poll_interval_ms < 200) {
+        syslog(LOG_WARNING, "Poll interval too small (%dms), setting to 200ms", config->poll_interval_ms);
+        config->poll_interval_ms = 200;
         config_changed = 1;
     } else if (config->poll_interval_ms > 10000) {
         syslog(LOG_WARNING, "Poll interval too large (%dms), setting to 10000ms", config->poll_interval_ms);
@@ -1204,10 +1204,10 @@ int main(int argc, char *argv[]) {
         }
         end_time = get_time_ms();
         u_int16_t duration_ms = end_time - start_time;
-        u_int16_t tSleep = global_config.poll_interval_ms - duration_ms;
-#ifdef DEBUG
+        int16_t tSleep = global_config.poll_interval_ms - duration_ms;
+//#ifdef DEBUG
 //		syslog(LOG_DEBUG, "tSleep - %d", tSleep);
-#endif
+//#endif
         if (tSleep > 0) {
             usleep(tSleep * 1000);
         } else {
