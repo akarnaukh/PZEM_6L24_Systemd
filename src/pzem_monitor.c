@@ -1207,7 +1207,7 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
 		syslog(LOG_DEBUG, "Duration - %d", duration_ms);
 #endif
-        usleep(global_config.poll_interval_ms * 1000);
+        usleep((global_config.poll_interval_ms - duration_ms) * 1000);
     }
     
     syslog(LOG_INFO, "Monitoring stopped for config: %s", config_name);
