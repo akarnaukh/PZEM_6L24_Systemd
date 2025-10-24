@@ -1203,8 +1203,12 @@ int main(int argc, char *argv[]) {
             error_count = 0;
         }
         end_time = get_time_ms();
-        int16_t duration_ms = end_time - start_time;
-        usleep((global_config.poll_interval_ms - duration_ms) * 1000);
+        u_int16_t duration_ms = end_time - start_time;
+        u_int16_t tSleep = global_config.poll_interval_ms - duration_ms;
+#ifdef DEBUG
+		syslog(LOG_DEBUG, "tSleep - %d", tSleep);
+#endif
+        if (tSleep > 0) usleep(tSleep * 1000);
     }
     
     syslog(LOG_INFO, "Monitoring stopped for config: %s", config_name);
