@@ -28,7 +28,7 @@ modbus_t *ctx = NULL;
 volatile int keep_running = 1;
 log_buffer_t log_buffer = {0};
 pzem_config_t global_config;
-char *service_name = "pzem";
+char *service_name = "pzem3";
 char config_name[64] = "default";
 // Глобальная переменная для FIFO
 char fifo_path[256];
@@ -46,6 +46,10 @@ void signal_hup(int sig) {
 #ifdef DEBUG
     syslog(LOG_DEBUG, "Received signal hup %d, setting keep_running to 0", sig);
 #endif
+}
+
+float lsbVal (uint16_t dat) {
+    return ((dat & 0xff) << 8) | (dat >> 8);
 }
 
 // Функция извлечения имени конфигурации из пути
@@ -288,63 +292,262 @@ int should_flush_buffer(const log_buffer_t *buffer) {
 
 // Функция обновления состояний порогов
 void update_threshold_states(pzem_data_t *data, const pzem_config_t *config) {
-    // Напряжение
+    // Напряжение A
     if (config->voltage_high_alarm > 0) {
-        if (data->voltage >= config->voltage_high_alarm) {
-            data->voltage_state = 'H';
-        } else if (data->voltage <= config->voltage_low_alarm) {
-            data->voltage_state = 'L';
-        } else if (data->voltage_state == 'H' && data->voltage > config->voltage_high_warning) {
-            data->voltage_state = 'H';
-        } else if (data->voltage_state == 'L' && data->voltage < config->voltage_low_warning) {
-            data->voltage_state = 'L';
+        if (data->voltage_A >= config->voltage_high_alarm) {
+            data->voltage_state_A = 'H';
+        } else if (data->voltage_A <= config->voltage_low_alarm) {
+            data->voltage_state_A = 'L';
+        } else if (data->voltage_state_A == 'H' && data->voltage_A > config->voltage_high_warning) {
+            data->voltage_state_A = 'H';
+        } else if (data->voltage_state_A == 'L' && data->voltage_A < config->voltage_low_warning) {
+            data->voltage_state_A = 'L';
         } else {
-            data->voltage_state = 'N';
+            data->voltage_state_A = 'N';
         }
     } else {
-        data->voltage_state = 'N';
+        data->voltage_state_A = 'N';
     }
     
-    // Ток
+    // Напряжение B
+    if (config->voltage_high_alarm > 0) {
+        if (data->voltage_B >= config->voltage_high_alarm) {
+            data->voltage_state_B = 'H';
+        } else if (data->voltage_B <= config->voltage_low_alarm) {
+            data->voltage_state_B = 'L';
+        } else if (data->voltage_state_B == 'H' && data->voltage_B > config->voltage_high_warning) {
+            data->voltage_state_A = 'H';
+        } else if (data->voltage_state_B == 'L' && data->voltage_B < config->voltage_low_warning) {
+            data->voltage_state_B = 'L';
+        } else {
+            data->voltage_state_B = 'N';
+        }
+    } else {
+        data->voltage_state_B = 'N';
+    }
+
+    // Напряжение C
+    if (config->voltage_high_alarm > 0) {
+        if (data->voltage_C >= config->voltage_high_alarm) {
+            data->voltage_state_C = 'H';
+        } else if (data->voltage_C <= config->voltage_low_alarm) {
+            data->voltage_state_C = 'L';
+        } else if (data->voltage_state_C == 'H' && data->voltage_C > config->voltage_high_warning) {
+            data->voltage_state_C = 'H';
+        } else if (data->voltage_state_C == 'L' && data->voltage_C < config->voltage_low_warning) {
+            data->voltage_state_C = 'L';
+        } else {
+            data->voltage_state_C = 'N';
+        }
+    } else {
+        data->voltage_state_C = 'N';
+    }
+
+    // Ток A
     if (config->current_high_alarm > 0) {
-        if (data->current >= config->current_high_alarm) {
-            data->current_state = 'H';
-        } else if (data->current <= config->current_low_alarm) {
-            data->current_state = 'L';
-        } else if (data->current_state == 'H' && data->current > config->current_high_warning) {
-            data->current_state = 'H';
-        } else if (data->current_state == 'L' && data->current < config->current_low_warning) {
-            data->current_state = 'L';
+        if (data->current_A >= config->current_high_alarm) {
+            data->current_state_A = 'H';
+        } else if (data->current_A <= config->current_low_alarm) {
+            data->current_state_A = 'L';
+        } else if (data->current_state_A == 'H' && data->current_A > config->current_high_warning) {
+            data->current_state_A = 'H';
+        } else if (data->current_state_A == 'L' && data->current_A < config->current_low_warning) {
+            data->current_state_A = 'L';
         } else {
-            data->current_state = 'N';
+            data->current_state_A = 'N';
         }
     } else {
-        data->current_state = 'N';
+        data->current_state_A = 'N';
+    }
+
+    // Ток B
+    if (config->current_high_alarm > 0) {
+        if (data->current_B >= config->current_high_alarm) {
+            data->current_state_B = 'H';
+        } else if (data->current_B <= config->current_low_alarm) {
+            data->current_state_B = 'L';
+        } else if (data->current_state_B == 'H' && data->current_B > config->current_high_warning) {
+            data->current_state_B = 'H';
+        } else if (data->current_state_B == 'L' && data->current_B < config->current_low_warning) {
+            data->current_state_B = 'L';
+        } else {
+            data->current_state_B = 'N';
+        }
+    } else {
+        data->current_state_B = 'N';
     }
     
-    // Частота
-    if (config->frequency_high_alarm > 0) {
-        if (data->frequency >= config->frequency_high_alarm) {
-            data->frequency_state = 'H';
-        } else if (data->frequency <= config->frequency_low_alarm) {
-            data->frequency_state = 'L';
-        } else if (data->frequency_state == 'H' && data->frequency > config->frequency_high_warning) {
-            data->frequency_state = 'H';
-        } else if (data->frequency_state == 'L' && data->frequency < config->frequency_low_warning) {
-            data->frequency_state = 'L';
+    // Ток C
+    if (config->current_high_alarm > 0) {
+        if (data->current_C >= config->current_high_alarm) {
+            data->current_state_C = 'H';
+        } else if (data->current_C <= config->current_low_alarm) {
+            data->current_state_C = 'L';
+        } else if (data->current_state_C == 'H' && data->current_C > config->current_high_warning) {
+            data->current_state_C = 'H';
+        } else if (data->current_state_C == 'L' && data->current_C < config->current_low_warning) {
+            data->current_state_C = 'L';
         } else {
-            data->frequency_state = 'N';
+            data->current_state_C = 'N';
         }
     } else {
-        data->frequency_state = 'N';
+        data->current_state_C = 'N';
     }
+
+    // Частота A
+    if (config->frequency_high_alarm > 0) {
+        if (data->frequency_A >= config->frequency_high_alarm) {
+            data->frequency_state_A = 'H';
+        } else if (data->frequency_A <= config->frequency_low_alarm) {
+            data->frequency_state_A = 'L';
+        } else if (data->frequency_state_A == 'H' && data->frequency_A > config->frequency_high_warning) {
+            data->frequency_state_A = 'H';
+        } else if (data->frequency_state_A == 'L' && data->frequency_A < config->frequency_low_warning) {
+            data->frequency_state_A = 'L';
+        } else {
+            data->frequency_state_A = 'N';
+        }
+    } else {
+        data->frequency_state_A = 'N';
+    }
+
+    // Частота B
+    if (config->frequency_high_alarm > 0) {
+        if (data->frequency_B >= config->frequency_high_alarm) {
+            data->frequency_state_B = 'H';
+        } else if (data->frequency_B <= config->frequency_low_alarm) {
+            data->frequency_state_B = 'L';
+        } else if (data->frequency_state_B == 'H' && data->frequency_B > config->frequency_high_warning) {
+            data->frequency_state_B = 'H';
+        } else if (data->frequency_state_B == 'L' && data->frequency_B < config->frequency_low_warning) {
+            data->frequency_state_B = 'L';
+        } else {
+            data->frequency_state_B = 'N';
+        }
+    } else {
+        data->frequency_state_B = 'N';
+    }
+
+    // Частота C
+    if (config->frequency_high_alarm > 0) {
+        if (data->frequency_C >= config->frequency_high_alarm) {
+            data->frequency_state_C = 'H';
+        } else if (data->frequency_C <= config->frequency_low_alarm) {
+            data->frequency_state_C = 'L';
+        } else if (data->frequency_state_C == 'H' && data->frequency_C > config->frequency_high_warning) {
+            data->frequency_state_C = 'H';
+        } else if (data->frequency_state_C == 'L' && data->frequency_C < config->frequency_low_warning) {
+            data->frequency_state_C = 'L';
+        } else {
+            data->frequency_state_C = 'N';
+        }
+    } else {
+        data->frequency_state_C = 'N';
+    }
+
+    // Угол фазы напряжения B
+    if (config->angleV_high_alarm > 0) {
+        if (data->angleV_B >= config->angleV_high_alarm) {
+            data->angleV_state_B = 'H';
+        } else if (data->angleV_B <= config->angleV_low_alarm) {
+            data->angleV_state_B = 'L';
+        } else if (data->angleV_state_B == 'H' && data->angleV_B > config->angleV_high_warning) {
+            data->angleV_state_B = 'H';
+        } else if (data->angleV_state_B == 'L' && data->angleV_B < config->angleV_low_warning) {
+            data->angleV_state_B = 'L';
+        } else {
+            data->angleV_state_B = 'N';
+        }
+    } else {
+        data->angleV_state_B = 'N';
+    }
+
+    // Угол фазы напряжения C
+    if (config->angleV_high_alarm > 0) {
+        if (data->angleV_C >= config->angleV_high_alarm) {
+            data->angleV_state_C = 'H';
+        } else if (data->angleV_C <= config->angleV_low_alarm) {
+            data->angleV_state_C = 'L';
+        } else if (data->angleV_state_C == 'H' && data->angleV_C > config->angleV_high_warning) {
+            data->angleV_state_C = 'H';
+        } else if (data->angleV_state_C == 'L' && data->angleV_C < config->angleV_low_warning) {
+            data->angleV_state_C = 'L';
+        } else {
+            data->angleV_state_C = 'N';
+        }
+    } else {
+        data->angleV_state_C = 'N';
+    }
+
+        // Угол фазы тока A
+    if (config->angleI_high_alarm > 0) {
+        if (data->angleI_A >= config->angleI_high_alarm) {
+            data->angleI_state_A = 'H';
+        } else if (data->angleI_A <= config->angleI_low_alarm) {
+            data->angleI_state_A = 'L';
+        } else if (data->angleI_state_A == 'H' && data->angleI_A > config->angleI_high_warning) {
+            data->angleI_state_A = 'H';
+        } else if (data->angleI_state_A == 'L' && data->angleI_A < config->angleI_low_warning) {
+            data->angleI_state_A = 'L';
+        } else {
+            data->angleI_state_A = 'N';
+        }
+    } else {
+        data->angleI_state_A = 'N';
+    }
+
+    // Угол фазы тока B
+    if (config->angleI_high_alarm > 0) {
+        if (data->angleI_B >= config->angleI_high_alarm) {
+            data->angleI_state_B = 'H';
+        } else if (data->angleI_B <= config->angleI_low_alarm) {
+            data->angleI_state_B = 'L';
+        } else if (data->angleI_state_B == 'H' && data->angleI_B > config->angleI_high_warning) {
+            data->angleI_state_B = 'H';
+        } else if (data->angleI_state_B == 'L' && data->angleI_B < config->angleI_low_warning) {
+            data->angleI_state_B = 'L';
+        } else {
+            data->angleI_state_B = 'N';
+        }
+    } else {
+        data->angleI_state_B = 'N';
+    }
+
+    // Угол фазы тока C
+    if (config->angleI_high_alarm > 0) {
+        if (data->angleI_C >= config->angleI_high_alarm) {
+            data->angleI_state_C = 'H';
+        } else if (data->angleI_C <= config->angleI_low_alarm) {
+            data->angleI_state_C = 'L';
+        } else if (data->angleI_state_C == 'H' && data->angleI_C > config->angleI_high_warning) {
+            data->angleI_state_C = 'H';
+        } else if (data->angleI_state_C == 'L' && data->angleI_C < config->angleI_low_warning) {
+            data->angleI_state_C = 'L';
+        } else {
+            data->angleI_state_C = 'N';
+        }
+    } else {
+        data->angleI_state_C = 'N';
+    }
+
 }
 
 // Функция проверки изменения состояний порогов
 int threshold_states_changed(const pzem_data_t *current, const pzem_data_t *previous) {
-    return (current->voltage_state != previous->voltage_state) ||
-           (current->current_state != previous->current_state) ||
-           (current->frequency_state != previous->frequency_state);
+    return (current->voltage_state_A != previous->voltage_state_A) ||
+           (current->voltage_state_B != previous->voltage_state_B) ||
+           (current->voltage_state_C != previous->voltage_state_C) ||
+           (current->current_state_A != previous->current_state_A) ||
+           (current->current_state_B != previous->current_state_B) ||
+           (current->current_state_C != previous->current_state_C) ||
+           (current->frequency_state_A != previous->frequency_state_A) ||
+           (current->frequency_state_B != previous->frequency_state_B) ||
+           (current->frequency_state_C != previous->frequency_state_C) ||
+           (current->angleV_state_B != previous->angleV_state_B) ||
+           (current->angleV_state_C != previous->angleV_state_C) ||
+           (current->angleI_state_A != previous->angleI_state_A) ||
+           (current->angleI_state_B != previous->angleI_state_B) ||
+           (current->angleI_state_C != previous->angleI_state_C);
 }
 
 // Функция подготовки строки лога с датой и временем
@@ -355,16 +558,18 @@ void prepare_log_entry(char *log_entry, size_t size, const pzem_data_t *data) {
     get_current_time(time_str, sizeof(time_str));
     
     if (data->status == 0) {
-        // Формат: дата, время, напряжение, состояние_напряжения, ток, состояние_тока, частота, состояние_частоты, мощность, статус
-        snprintf(log_entry, size, "%s,%s,%.1f,%c,%.3f,%c,%.1f,%c,%.1f,%d\n",
+        // Формат: дата, время, напряжение, состояние_напряжения, ток, состояние_тока, частота, состояние_частоты, угол напряжения, состояние угла, угол тока, состояние угла, мощность , статус
+        snprintf(log_entry, size, "%s,%s,%.1f,%c,%.1f,%c,%.1f,%c,%.2f,%c,%.2f,%c,%.2f,%c,%.2f,%c,%.2f,%c,%.2f,%c,%.2f,%c,%.2f,%c,%.2f,%c,%.2f,%c,%.2f,%c,%.1f,%.1f,%.1f,%d\n",
                  date_str, time_str,
-                 data->voltage, data->voltage_state,
-                 data->current, data->current_state,
-                 data->frequency, data->frequency_state,
-                 data->power, data->status);
+                 data->voltage_A, data->voltage_state_A, data->voltage_B, data->voltage_state_B, data->voltage_C, data->voltage_state_C,
+                 data->current_A, data->current_state_A, data->current_B, data->current_state_B, data->current_C, data->current_state_C,
+                 data->frequency_A, data->frequency_state_A, data->frequency_B, data->frequency_state_B, data->frequency_C, data->frequency_state_C,
+                 data->angleV_B, data->angleV_state_B, data->angleV_C, data->angleV_state_C,
+                 data->angleI_A, data->angleI_state_A, data->angleI_B, data->angleI_state_B, data->angleI_C, data->angleI_state_C,
+                 data->power_A, data->power_B, data->power_C, data->status);
     } else {
         // При ошибке пишем прочерки
-        snprintf(log_entry, size, "%s,%s,-,-,-,-,-,-,-,%d\n",
+        snprintf(log_entry, size, "%s,%s,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,%d\n",
                  date_str, time_str, data->status);
     }
 }
@@ -427,12 +632,14 @@ int load_config(const char *config_file, pzem_config_t *config) {
     config->slave_addr = 1;
     config->poll_interval_ms = 500;
     strcpy(config->log_dir, "/var/log/pzem3");
-    config->log_buffer_size = 20;
+    config->log_buffer_size = 10;
     
     // Чувствительность по умолчанию
     config->voltage_sensitivity = 0.1;
-    config->current_sensitivity = 0.001;
-    config->frequency_sensitivity = 0.1;
+    config->current_sensitivity = 0.01;
+    config->frequency_sensitivity = 0.01;
+    config->angleV_sensitivity = 0.01;
+    config->angleI_sensitivity = 0.01;
     config->power_sensitivity = 1.0;
     
     // Пороги по умолчанию (0 = отключено)
@@ -450,6 +657,16 @@ int load_config(const char *config_file, pzem_config_t *config) {
     config->frequency_high_warning = 0;
     config->frequency_low_warning = 0;
     config->frequency_low_alarm = 0;
+
+    config->angleV_high_alarm = 0;
+    config->angleV_high_warning = 0;
+    config->angleV_low_warning = 0;
+    config->angleV_low_alarm = 0;
+
+    config->angleI_high_alarm = 0;
+    config->angleI_high_warning = 0;
+    config->angleI_low_warning = 0;
+    config->angleI_low_alarm = 0;
     
     file = fopen(config_file, "r");
     if (file == NULL) {
@@ -481,7 +698,7 @@ int load_config(const char *config_file, pzem_config_t *config) {
                 strncpy(config->log_dir, trimmed_value, sizeof(config->log_dir) - 1);
                 config->log_dir[sizeof(config->log_dir) - 1] = '\0';
             }
-	    else if (strcmp(key, "log_buffer_size") == 0) {
+            else if (strcmp(key, "log_buffer_size") == 0) {
                 config->log_buffer_size = atoi(trimmed_value);
             }
             // Чувствительность
@@ -493,6 +710,12 @@ int load_config(const char *config_file, pzem_config_t *config) {
             }
             else if (strcmp(key, "frequency_sensitivity") == 0) {
                 config->frequency_sensitivity = atof(trimmed_value);
+            }
+            else if (strcmp(key, "angleV_sensitivity") == 0) {
+                config->angleV_sensitivity = atof(trimmed_value);
+            }
+            else if (strcmp(key, "angleI_sensitivity") == 0) {
+                config->angleI_sensitivity = atof(trimmed_value);
             }
             else if (strcmp(key, "power_sensitivity") == 0) {
                 config->power_sensitivity = atof(trimmed_value);
@@ -536,6 +759,32 @@ int load_config(const char *config_file, pzem_config_t *config) {
             else if (strcmp(key, "frequency_low_alarm") == 0) {
                 config->frequency_low_alarm = atof(trimmed_value);
             }
+            // Пороги угла напряжения
+            else if (strcmp(key, "angleV_high_alarm") == 0) {
+                config->angleV_high_alarm = atof(trimmed_value);
+            }
+            else if (strcmp(key, "angleV_high_warning") == 0) {
+                config->angleV_high_warning = atof(trimmed_value);
+            }
+            else if (strcmp(key, "angleV_low_warning") == 0) {
+                config->angleV_low_warning = atof(trimmed_value);
+            }
+            else if (strcmp(key, "angleV_low_alarm") == 0) {
+                config->angleV_low_alarm = atof(trimmed_value);
+            }
+            // Пороги угла тока
+            else if (strcmp(key, "angleI_high_alarm") == 0) {
+                config->angleI_high_alarm = atof(trimmed_value);
+            }
+            else if (strcmp(key, "angleI_high_warning") == 0) {
+                config->angleI_high_warning = atof(trimmed_value);
+            }
+            else if (strcmp(key, "angleI_low_warning") == 0) {
+                config->angleI_low_warning = atof(trimmed_value);
+            }
+            else if (strcmp(key, "angleI_low_alarm") == 0) {
+                config->angleI_low_alarm = atof(trimmed_value);
+            }
         }
     }
     
@@ -545,9 +794,9 @@ int load_config(const char *config_file, pzem_config_t *config) {
     int config_changed = 0;
     
     // Проверка интервала опроса
-    if (config->poll_interval_ms < 100) {
-        syslog(LOG_WARNING, "Poll interval too small (%dms), setting to 100ms", config->poll_interval_ms);
-        config->poll_interval_ms = 100;
+    if (config->poll_interval_ms < 200) {
+        syslog(LOG_WARNING, "Poll interval too small (%dms), setting to 200ms", config->poll_interval_ms);
+        config->poll_interval_ms = 200;
         config_changed = 1;
     } else if (config->poll_interval_ms > 10000) {
         syslog(LOG_WARNING, "Poll interval too large (%dms), setting to 10000ms", config->poll_interval_ms);
@@ -578,10 +827,28 @@ int load_config(const char *config_file, pzem_config_t *config) {
 int values_changed(const pzem_data_t *current, const pzem_data_t *previous, const pzem_config_t *config) {
     if (previous->first_read) return 1;
     if (current->status != previous->status) return 1;
-    if (fabsf(current->voltage - previous->voltage) > config->voltage_sensitivity) return 1;
-    if (fabsf(current->current - previous->current) > config->current_sensitivity) return 1;
-    if (fabsf(current->frequency - previous->frequency) > config->frequency_sensitivity) return 1;
-    if (fabsf(current->power - previous->power) > config->power_sensitivity) return 1;
+    if (fabsf(current->voltage_A - previous->voltage_A) > config->voltage_sensitivity) return 1;
+    if (fabsf(current->voltage_B - previous->voltage_B) > config->voltage_sensitivity) return 1;
+    if (fabsf(current->voltage_C - previous->voltage_C) > config->voltage_sensitivity) return 1;
+
+    if (fabsf(current->current_A - previous->current_A) > config->current_sensitivity) return 1;
+    if (fabsf(current->current_B - previous->current_B) > config->current_sensitivity) return 1;
+    if (fabsf(current->current_C - previous->current_C) > config->current_sensitivity) return 1;
+
+    if (fabsf(current->frequency_A - previous->frequency_A) > config->frequency_sensitivity) return 1;
+    if (fabsf(current->frequency_B - previous->frequency_B) > config->frequency_sensitivity) return 1;
+    if (fabsf(current->frequency_C - previous->frequency_C) > config->frequency_sensitivity) return 1;
+
+    if (fabsf(current->angleV_B - previous->angleV_B) > config->angleV_sensitivity) return 1;
+    if (fabsf(current->angleV_C - previous->angleV_C) > config->angleV_sensitivity) return 1;
+
+    if (fabsf(current->angleI_A - previous->angleI_A) > config->angleI_sensitivity) return 1;
+    if (fabsf(current->angleI_B - previous->angleI_B) > config->angleI_sensitivity) return 1;
+    if (fabsf(current->angleI_C - previous->angleI_C) > config->angleI_sensitivity) return 1;
+
+    if (fabsf(current->power_A - previous->power_A) > config->power_sensitivity) return 1;
+    if (fabsf(current->power_B - previous->power_B) > config->power_sensitivity) return 1;
+    if (fabsf(current->power_C - previous->power_C) > config->power_sensitivity) return 1;
     
     return 0;
 }
@@ -615,7 +882,7 @@ float lsbVal (uint16_t dat) {
 
 // Функция чтения данных с PZEM (добавляем чтение мощности)
 int read_pzem_data(pzem_data_t *data) {
-    uint16_t tab_reg[10];
+    uint16_t tab_reg[20];
     int rc;
 
     if (ctx == NULL) {
@@ -623,23 +890,67 @@ int read_pzem_data(pzem_data_t *data) {
         return -1;
     }
 
-    rc = modbus_read_input_registers(ctx, 0x0000, 10, tab_reg);
+    rc = modbus_read_input_registers(ctx, 0x0000, 20, tab_reg);
     if (rc == -1) {
         data->status = 1;
         return -1;
     }
+/*
+Register Values (from last successful query):
+---------------------------------------------
+Register 0x0000: 0xBC08 (223.6V)    0
+Register 0x0001: 0xA108 (220.9V)    1
+Register 0x0002: 0xD208 (225.8V)    2
 
-    data->voltage = (float)tab_reg[0] / 10.0f;
+Register 0x0003: 0x0000 (0.00A)     3
+Register 0x0004: 0x0000 (0.00A)     4
+Register 0x0005: 0x0000 (0.00A)     5
+
+Register 0x0006: 0x7F13 (49.91Hz)   6
+Register 0x0007: 0x7E13 (49.90Hz)   7
+Register 0x0008: 0x7E13 (49.90Hz)   8
+AngleV
+Register 0x0009: 0x825D (239.38°)   9
+Register 0x000A: 0xC62E (119.74°)   10
+AngleI
+Register 0x000B: 0x0000 (0.00°)     11
+Register 0x000C: 0x0000 (0.00°)     12
+Register 0x000D: 0x0000 (0.00°)     13
+Power
+Register 0x000E: 0x0000 (0.0W)  Low     14
+Register 0x000F: 0x0000 (0)     High    15
+Register 0x0010: 0x0000 (0.0W)  Low     16
+Register 0x0011: 0x0000 (0)     High    17
+Register 0x0012: 0x0000 (0.0W)  Low     18
+Register 0x0013: 0x0000 (0)     High    19
+*/
+    data->voltage_A = lsbVal(tab_reg[0]) / 10.0f;
+    data->voltage_B = lsbVal(tab_reg[1]) / 10.0f;
+    data->voltage_C = lsbVal(tab_reg[2]) / 10.0f;
     
-    // Ток: объединяем два 16-битных регистра в 32-битное значение
-    uint32_t current = ((uint32_t)tab_reg[1] << 16) | tab_reg[2];
-    data->current = (float)current / 1000.0f;
+    data->current_A = lsbVal(tab_reg[3]) / 100.0f;
+    data->current_B = lsbVal(tab_reg[4]) / 100.0f;
+    data->current_C = lsbVal(tab_reg[5]) / 100.0f;
     
+    data->frequency_A = lsbVal(tab_reg[6]) / 100.0f;
+    data->frequency_B = lsbVal(tab_reg[7]) / 100.0f;
+    data->frequency_C = lsbVal(tab_reg[8]) / 100.0f;
+
+    data->angleV_B = lsbVal(tab_reg[9]) / 100.0f;
+    data->angleV_C = lsbVal(tab_reg[10]) / 100.0f;
+
+    data->angleI_A = lsbVal(tab_reg[11]) / 100.0f;
+    data->angleI_B = lsbVal(tab_reg[12]) / 100.0f;
+    data->angleI_C = lsbVal(tab_reg[13]) / 100.0f;
+
     // Мощность: объединяем два 16-битных регистра в 32-битное значение
-    uint32_t power = ((uint32_t)tab_reg[3] << 16) | tab_reg[4];
-    data->power = (float)power / 10.0f;
+    uint32_t power_A = ((uint32_t)tab_reg[15] << 16) | tab_reg[14];
+    uint32_t power_A = ((uint32_t)tab_reg[17] << 16) | tab_reg[16];
+    uint32_t power_A = ((uint32_t)tab_reg[19] << 16) | tab_reg[18];
+    data->power_A = (float)power_A / 10.0f;
+    data->power_B = (float)power_A / 10.0f;
+    data->power_C = (float)power_A / 10.0f;
     
-    data->frequency = (float)tab_reg[7] / 10.0f;
     data->status = 0;
 
     return 0;
@@ -709,7 +1020,7 @@ int main(int argc, char *argv[]) {
     extract_config_name(config_file);
     
     char syslog_ident[128];
-    snprintf(syslog_ident, sizeof(syslog_ident), "pzem-%s", config_name);
+    snprintf(syslog_ident, sizeof(syslog_ident), "pzem3-%s", config_name);
     service_name = syslog_ident;
     
     openlog(service_name, LOG_PID | LOG_CONS, LOG_DAEMON);
@@ -719,7 +1030,7 @@ int main(int argc, char *argv[]) {
     signal(SIGHUP, signal_hup);
     signal(SIGQUIT, signal_handler);
     
-    syslog(LOG_INFO, "PZEM-004T Monitor starting with config: %s", config_file);
+    syslog(LOG_INFO, "PZEM-6L24 Monitor starting with config: %s", config_file);
 
     // Создаем FIFO для передачи данных
     snprintf(fifo_path, sizeof(fifo_path), "/tmp/pzem3_data_%s", config_name);
@@ -772,17 +1083,50 @@ int main(int argc, char *argv[]) {
     previous_data.status = 2;
     
     // Инициализация состояний
-    current_data.voltage_state = 'N';
-    current_data.current_state = 'N';
-    current_data.frequency_state = 'N';
-    previous_data.voltage_state = 'N';
-    previous_data.current_state = 'N';
-    previous_data.frequency_state = 'N';
+    current_data.voltage_state_A = 'N';
+    current_data.voltage_state_B = 'N';
+    current_data.voltage_state_C = 'N';
+
+    current_data.current_state_A = 'N';
+    current_data.current_state_B = 'N';
+    current_data.current_state_C = 'N';
+
+    current_data.frequency_state_A = 'N';
+    current_data.frequency_state_B = 'N';
+    current_data.frequency_state_C = 'N';
+
+    current_data.angleV_state_B = 'N';
+    current_data.angleV_state_C = 'N';
+
+    current_data.angleI_state_A = 'N';
+    current_data.angleI_state_B = 'N';
+    current_data.angleI_state_C = 'N';
+    
+    previous_data.voltage_state_A = 'N';
+    previous_data.voltage_state_B = 'N';
+    previous_data.voltage_state_C = 'N';
+
+    previous_data.current_state_A = 'N';
+    previous_data.current_state_B = 'N';
+    previous_data.current_state_C = 'N';
+
+    previous_data.frequency_state_A = 'N';
+    previous_data.frequency_state_B = 'N';
+    previous_data.frequency_state_C = 'N';
+
+    previous_data.angleV_state_B = 'N';
+    previous_data.angleV_state_C = 'N';
+
+    previous_data.angleI_state_A = 'N';
+    previous_data.angleI_state_B = 'N';
+    previous_data.angleI_state_C = 'N';
 
     char thresholds[128] = "";
     if (global_config.voltage_high_alarm > 0) strcat(thresholds, "V");
     if (global_config.current_high_alarm > 0) strcat(thresholds, "I");
     if (global_config.frequency_high_alarm > 0) strcat(thresholds, "Z");
+    if (global_config.angleV_high_alarm > 0) strcat(thresholds, "Av");
+    if (global_config.angleI_high_alarm > 0) strcat(thresholds, "Ai");
 #ifdef DEBUG
     syslog(LOG_DEBUG, "Debug mode enabled");
 #endif

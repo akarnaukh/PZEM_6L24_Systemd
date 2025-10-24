@@ -52,7 +52,21 @@ typedef struct {
     float current_sensitivity;
     float frequency_sensitivity;
     float power_sensitivity;
-    
+    float angleV_sensitivity;
+    float angleI_sensitivity;
+
+    // Пороги угла фаз напряжения
+    float angleV_high_alarm;
+    float angleV_high_warning;
+    float angleV_low_warning;
+    float angleV_low_alarm;
+
+    // Пороги угла фаз ток
+    float angleI_high_alarm;
+    float angleI_high_warning;
+    float angleI_low_warning;
+    float angleI_low_alarm;
+
     // Пороги напряжения
     float voltage_high_alarm;
     float voltage_high_warning;
@@ -74,17 +88,46 @@ typedef struct {
 
 // Структура для хранения данных
 typedef struct {
-    float voltage;
-    float current;
-    float frequency;
-    float power;  // Добавляем мощность
+    float voltage_A;
+    float voltage_B;
+    float voltage_C;
+    float current_A;
+    float current_B;
+    float current_C;
+    float frequency_A;
+    float frequency_B;
+    float frequency_C;
+    float angleV_B;
+    float angleV_C;
+    float angleI_A;
+    float angleI_B;
+    float angleI_C;
+    float power_A;
+    float power_B;
+    float power_C;
     int status;
     int first_read;
     
-    // Состояния порогов
-    char voltage_state;  // 'H' - высокое, 'L' - низкое, 'N' - норма
-    char current_state;  // 'H' - высокое, 'L' - низкое, 'N' - норма  
-    char frequency_state; // 'H' - высокое, 'L' - низкое, 'N' - норма
+    // Состояния порогов: 'H' - высокое, 'L' - низкое, 'N' - норма
+    char voltage_state_A;
+    char voltage_state_B;
+    char voltage_state_C;
+
+    char current_state_A;
+    char current_state_B;
+    char current_state_C;
+    
+    char frequency_state_A;
+    char frequency_state_B;
+    char frequency_state_C;
+
+    char angleV_state_B;
+    char angleV_state_C;
+
+    char angleI_state_A;
+    char angleI_state_B;
+    char angleI_state_C;
+    
 } pzem_data_t;
 
 // Структура для буферизации логов
@@ -134,6 +177,7 @@ void cleanup(void);
 void safe_reconnect(const pzem_config_t *config);
 
 // Функции обработки данных
+float lsbVal (uint16_t dat);
 int values_changed(const pzem_data_t *current, const pzem_data_t *previous, const pzem_config_t *config);
 void update_threshold_states(pzem_data_t *data, const pzem_config_t *config);
 int threshold_states_changed(const pzem_data_t *current, const pzem_data_t *previous);
