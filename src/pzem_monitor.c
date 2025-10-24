@@ -1208,7 +1208,11 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
 		syslog(LOG_DEBUG, "tSleep - %d", tSleep);
 #endif
-        if (tSleep > 0) usleep(tSleep * 1000);
+        if (tSleep > 0) {
+            usleep(tSleep * 1000);
+        } else {
+            syslog(LOG_ALERT, "Attention! The time spent on the request and processing (%d) is longer than the specified survey period %d", duration_ms, global_config.poll_interval_ms);
+        };
     }
     
     syslog(LOG_INFO, "Monitoring stopped for config: %s", config_name);
