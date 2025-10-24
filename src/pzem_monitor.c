@@ -1206,7 +1206,7 @@ int main(int argc, char *argv[]) {
         u_int16_t duration_ms = end_time - start_time;
         u_int16_t tSleep = global_config.poll_interval_ms - duration_ms;
 #ifdef DEBUG
-		syslog(LOG_DEBUG, "tSleep - %d", tSleep);
+//		syslog(LOG_DEBUG, "tSleep - %d", tSleep);
 #endif
         if (tSleep > 0) {
             usleep(tSleep * 1000);
