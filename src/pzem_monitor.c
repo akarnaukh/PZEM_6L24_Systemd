@@ -876,10 +876,6 @@ int init_modbus_connection(const pzem_config_t *config) {
     return 0;
 }
 
-float lsbVal (uint16_t dat) {
-    return ((dat & 0xff) << 8) | (dat >> 8);
-}
-
 // Функция чтения данных с PZEM (добавляем чтение мощности)
 int read_pzem_data(pzem_data_t *data) {
     uint16_t tab_reg[20];
