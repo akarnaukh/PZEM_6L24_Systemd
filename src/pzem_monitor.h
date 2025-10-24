@@ -164,6 +164,7 @@ int init_log_buffer(log_buffer_t *buffer, int initial_capacity, const char *log_
 int add_to_log_buffer(log_buffer_t *buffer, const char *log_entry);
 int flush_log_buffer(log_buffer_t *buffer);
 void free_log_buffer(log_buffer_t *buffer);
+long long get_time_ms();
 void get_current_date(char *date_str, size_t size);
 void get_current_time(char *time_str, size_t size);
 void get_log_file_path(char *path, size_t size, const char *log_dir);

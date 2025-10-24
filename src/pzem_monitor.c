@@ -136,6 +136,12 @@ int create_directory_if_not_exists(const char *path) {
     }
     return 0;
 }
+// Функция получения текущего времени в милисекундах
+long long get_time_ms() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000LL + ts.tv_nsec / 1000000LL;
+}
 
 // Функция получения текущей даты в формате YYYY-MM-DD
 void get_current_date(char *date_str, size_t size) {
@@ -1018,6 +1024,7 @@ int main(int argc, char *argv[]) {
     char syslog_ident[128];
     snprintf(syslog_ident, sizeof(syslog_ident), "pzem3-%s", config_name);
     service_name = syslog_ident;
+    long long start_time, end_time;
     
     openlog(service_name, LOG_PID | LOG_CONS, LOG_DAEMON);
     
@@ -1142,6 +1149,7 @@ int main(int argc, char *argv[]) {
     int error_count = 0;
     
     while (keep_running) {
+        start_time = get_time_ms();
         if (read_pzem_data(&current_data) == -1) {
             current_data.status = 1;
         } else {
@@ -1194,7 +1202,11 @@ int main(int argc, char *argv[]) {
         } else {
             error_count = 0;
         }
-        
+        end_time = get_time_ms();
+        long long duration_ms = end_time - start_time;
+#ifdef DEBUG
+		syslog(LOG_DEBUG, "Duration - %d", duration_ms);
+#endif
         usleep(global_config.poll_interval_ms * 1000);
     }
     
