@@ -945,11 +945,11 @@ Register 0x0013: 0x0000 (0)     High    19
 
     // Мощность: объединяем два 16-битных регистра в 32-битное значение
     uint32_t power_A = ((uint32_t)tab_reg[15] << 16) | tab_reg[14];
-    uint32_t power_A = ((uint32_t)tab_reg[17] << 16) | tab_reg[16];
-    uint32_t power_A = ((uint32_t)tab_reg[19] << 16) | tab_reg[18];
+    uint32_t power_B = ((uint32_t)tab_reg[17] << 16) | tab_reg[16];
+    uint32_t power_C = ((uint32_t)tab_reg[19] << 16) | tab_reg[18];
     data->power_A = (float)power_A / 10.0f;
-    data->power_B = (float)power_A / 10.0f;
-    data->power_C = (float)power_A / 10.0f;
+    data->power_B = (float)power_B / 10.0f;
+    data->power_C = (float)power_C / 10.0f;
     
     data->status = 0;
 
