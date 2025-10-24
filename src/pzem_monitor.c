@@ -794,9 +794,9 @@ int load_config(const char *config_file, pzem_config_t *config) {
     int config_changed = 0;
     
     // Проверка интервала опроса
-    if (config->poll_interval_ms < 200) {
-        syslog(LOG_WARNING, "Poll interval too small (%dms), setting to 200ms", config->poll_interval_ms);
-        config->poll_interval_ms = 200;
+    if (config->poll_interval_ms < 150) {
+        syslog(LOG_WARNING, "Poll interval too small (%dms), setting to 150ms", config->poll_interval_ms);
+        config->poll_interval_ms = 150;
         config_changed = 1;
     } else if (config->poll_interval_ms > 10000) {
         syslog(LOG_WARNING, "Poll interval too large (%dms), setting to 10000ms", config->poll_interval_ms);
