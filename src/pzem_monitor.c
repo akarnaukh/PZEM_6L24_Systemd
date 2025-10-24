@@ -1212,7 +1212,7 @@ int main(int argc, char *argv[]) {
             usleep(tSleep * 1000);
         } else {
             syslog(LOG_ALERT, "Attention! The time spent on the request and processing (%d) is longer than the specified survey period %d", duration_ms, global_config.poll_interval_ms);
-        };
+        }
     }
     
     syslog(LOG_INFO, "Monitoring stopped for config: %s", config_name);
