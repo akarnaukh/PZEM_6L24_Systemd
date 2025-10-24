@@ -113,7 +113,7 @@ templates: | $(CONFIGDIR) $(SYSTEMDDIR)
 	@echo "[Service]" >> $(SYSTEMDDIR)/pzem3@.service
 	@echo "Type=simple" >> $(SYSTEMDDIR)/pzem3@.service
 	@echo "User=root" >> $(SYSTEMDDIR)/pzem3@.service
-	@echo "ExecStart=$(BIN_INSTALL_DIR)/pzem_monitor3 /etc/pzem/%i.conf" >> $(SYSTEMDDIR)/pzem3@.service
+	@echo "ExecStart=$(BIN_INSTALL_DIR)/pzem_monitor3 /etc/pzem3/%i.conf" >> $(SYSTEMDDIR)/pzem3@.service
 	@echo "Restart=always" >> $(SYSTEMDDIR)/pzem3@.service
 	@echo "RestartSec=5" >> $(SYSTEMDDIR)/pzem3@.service
 	@echo "StandardOutput=journal" >> $(SYSTEMDDIR)/pzem3@.service
