@@ -1203,9 +1203,9 @@ int main(int argc, char *argv[]) {
             error_count = 0;
         }
         end_time = get_time_ms();
-        long long duration_ms = end_time - start_time;
+        int16_t duration_ms = end_time - start_time;
 #ifdef DEBUG
-		syslog(LOG_DEBUG, "Duration - %lld", duration_ms);
+		syslog(LOG_DEBUG, "Duration - %d", duration_ms);
 #endif
         usleep(global_config.poll_interval_ms * 1000);
     }
