@@ -53,7 +53,7 @@ debug: clean $(TARGET)
 # Create configuration and service templates
 templates: | $(CONFIGDIR) $(SYSTEMDDIR)
 	@echo "Creating template files..."
-	
+
 # Create default configuration
 	@echo "# PZEM-6L24 Default Configuration" > $(CONFIGDIR)/pzem3_default.conf
 	@echo "" >> $(CONFIGDIR)/pzem3_default.conf
@@ -92,16 +92,18 @@ templates: | $(CONFIGDIR) $(SYSTEMDDIR)
 	@echo "frequency_high_warning = 51" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "frequency_low_warning = 49" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "frequency_low_alarm = 48" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "# Angle rotate V thresholds (0 = disabled)" >> $(CONFIGDIR)/pzem3_default.conf
-    @echo "angleV_high_alarm = 130" >> $(CONFIGDIR)/pzem3_default.conf
-    @echo "angleV_high_warning = 125" >> $(CONFIGDIR)/pzem3_default.conf
-    @echo "angleV_low_warning = 115" >> $(CONFIGDIR)/pzem3_default.conf
-    @echo "angleV_low_alarm = 110" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "angleV_high_alarm = 130" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "angleV_high_warning = 125" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "angleV_low_warning = 115" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "angleV_low_alarm = 110" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "# Angle rotate I thresholds (0 = disabled)" >> $(CONFIGDIR)/pzem3_default.conf
-    @echo "angleI_high_alarm = 130" >> $(CONFIGDIR)/pzem3_default.conf
-    @echo "angleI_high_warning = 125" >> $(CONFIGDIR)/pzem3_default.conf
-    @echo "angleI_low_warning = 115" >> $(CONFIGDIR)/pzem3_default.conf
-    @echo "angleI_low_alarm = 110" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "angleI_high_alarm = 130" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "angleI_high_warning = 125" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "angleI_low_warning = 115" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "angleI_low_alarm = 110" >> $(CONFIGDIR)/pzem3_default.conf
     
 # Create systemd service file
 	@echo "[Unit]" > $(SYSTEMDDIR)/pzem3@.service
