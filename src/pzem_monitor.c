@@ -1158,7 +1158,7 @@ int main(int argc, char *argv[]) {
 	    prepare_log_entry(log_entry, sizeof(log_entry), &current_data);
 #ifdef DEBUG
 	    // Отладочное сообщение
-        syslog(LOG_DEBUG, "Changed: data - %d, state - %d", data_changed, states_changed);
+        //syslog(LOG_DEBUG, "Changed: data - %d, state - %d", data_changed, states_changed);
 	    syslog(LOG_DEBUG, "Data changed, preparing to write: %s", log_entry);
 #endif
 	    // СРАЗУ отправляем в FIFO
