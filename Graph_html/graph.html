@@ -223,6 +223,7 @@
         // Фиксированные диапазоны
         const voltageRange = [100, 300]; // Напряжение от 100 до 300 В
         const frequencyRange = [10, 70];  // Частота от 10 до 70 Гц
+        const angleRange = [0, 370];  // Частота от 10 до 70 Гц
         
         // Смещения для графиков
         const voltageOffsets = {
@@ -516,11 +517,13 @@
             
             // Определение исходных доменов
             const xDomain = d3.extent(data, d => d.timestamp);
-            const anglesDomain = d3.extent([
-                ...data.map(d => d.angleVB),
-                ...data.map(d => d.angleVC)
-            ]);
+            //const anglesDomain = d3.extent([
+            //    ...data.map(d => d.angleVB),
+            //    ...data.map(d => d.angleVC)
+            //]);
             
+            const anglesDomain = angleRange;
+
             // Определение шкал
             anglesXScale = d3.scaleTime()
                 .domain(xDomain)
