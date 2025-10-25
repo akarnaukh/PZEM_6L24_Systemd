@@ -1158,11 +1158,11 @@ int main(int argc, char *argv[]) {
             update_threshold_states(&current_data, &global_config);
             if (current_data.first_read) {
                 if (current_data.angleV_B < 200 && current_data.angleV_B > 100 && current_data.angleV_C > 200) {
-                    current_data.rotaryP = "R";
+                    current_data.rotaryP = 'R';
                 } else {
-                    current_data.rotaryP = "L";
+                    current_data.rotaryP = 'L';
                 }
-                syslog(LOG_INFO, "The order of rotation of the phases (L - reverse, R - forward): %s", current_data.rotaryP);
+                syslog(LOG_INFO, "The order of rotation of the phases (L - reverse, R - forward): %c", current_data.rotaryP);
             }
         }
 
