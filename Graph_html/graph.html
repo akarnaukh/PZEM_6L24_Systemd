@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>График трехфазных данных электроэнергии</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #fileInput {
+            display: none;
+        }
+        .file-label {
+            padding: 8px 16px;
+            background-color: #2196F3;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .file-label:hover {
+            background-color: #0b7dda;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .axis-label {
+            font-size: 12px;
+            fill: #555;
+        }
+        .tooltip {
+            position: absolute;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 4px;
+            pointer-events: none;
+            font-size: 12px;
+            opacity: 0;
+            z-index: 10;
+        }
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+            margin-left: auto;
+        }
+        .zoom-btn {
+            padding: 5px 10px;
+            background-color: #6c757d;
+            font-size: 12px;
+        }
+        .zoom-btn:hover {
+            background-color: #5a6268;
+        }
+        .status-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        .chart-title {
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .control-group {
+            display: flex;
+            gap: 15px;
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>График трехфазных данных электроэнергии</h1>
+        
+        <div class="controls">
+            <input type="file" id="fileInput" accept=".csv,.log,.txt">
+            <label for="fileInput" class="file-label">Выбрать CSV файл</label>
+            <button id="loadButton">Загрузить данные</button>
+            
+            <div class="control-group">
+                <label><input type="checkbox" id="voltageCheck" checked> Напряжение</label>
+                <label><input type="checkbox" id="frequencyCheck"> Частота</label>
+                <label><input type="checkbox" id="anglesCheck"> Углы</label>
+                <label><input type="checkbox" id="currentCheck"> Ток</label>
+            </div>
+            
+            <div class="zoom-controls">
+                <button id="zoomIn" class="zoom-btn">Увеличить</button>
+                <button id="zoomOut" class="zoom-btn">Уменьшить</button>
+                <button id="resetZoom" class="zoom-btn">Сбросить зум</button>
+            </div>
+        </div>
+        
+        <div class="status-info" id="zoomStatus">Масштаб: 100% | Используйте колесо мыши для зума или выделите область</div>
+        
+        <div class="legend" id="legend"></div>
+        
+        <div class="chart-title" id="voltageTitle">Напряжение</div>
+        <div class="chart-container" id="voltageChart"></div>
+        
+        <div class="chart-title" id="frequencyTitle">Частота</div>
+        <div class="chart-container" id="frequencyChart"></div>
+        
+        <div class="chart-title" id="anglesTitle">Углы напряжения</div>
+        <div class="chart-container" id="anglesChart"></div>
+        
+        <div class="chart-title" id="currentTitle">Ток</div>
+        <div class="chart-container" id="currentChart"></div>
+    </div>
+
+    <script>
+        // Элементы управления
+        const fileInput = document.getElementById('fileInput');
+        const loadButton = document.getElementById('loadButton');
+        const voltageCheck = document.getElementById('voltageCheck');
+        const frequencyCheck = document.getElementById('frequencyCheck');
+        const anglesCheck = document.getElementById('anglesCheck');
+        const currentCheck = document.getElementById('currentCheck');
+        
+        const voltageChartContainer = document.getElementById('voltageChart');
+        const frequencyChartContainer = document.getElementById('frequencyChart');
+        const anglesChartContainer = document.getElementById('anglesChart');
+        const currentChartContainer = document.getElementById('currentChart');
+        
+        const voltageTitle = document.getElementById('voltageTitle');
+        const frequencyTitle = document.getElementById('frequencyTitle');
+        const anglesTitle = document.getElementById('anglesTitle');
+        const currentTitle = document.getElementById('currentTitle');
+        
+        const legendContainer = document.getElementById('legend');
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const resetZoomBtn = document.getElementById('resetZoom');
+        const zoomStatus = document.getElementById('zoomStatus');
+        
+        // Переменные для данных и графиков
+        let data = [];
+        let voltageSvg, frequencySvg, anglesSvg, currentSvg;
+        let voltageXScale, voltageYScale, frequencyXScale, frequencyYScale, anglesXScale, anglesYScale, currentXScale, currentYScale;
+        let voltageXAxis, voltageYAxis, frequencyXAxis, frequencyYAxis, anglesXAxis, anglesYAxis, currentXAxis, currentYAxis;
+        let voltageZoom, frequencyZoom, anglesZoom, currentZoom;
+        
+        let margin = { top: 20, right: 80, bottom: 50, left: 60 };
+        let chartWidth = voltageChartContainer.clientWidth - margin.left - margin.right;
+        let chartHeight = voltageChartContainer.clientHeight - margin.top - margin.bottom;
+        
+        // Переменные для зума
+        let zoomLevel = 1;
+        let currentZoomTransform = d3.zoomIdentity;
+        
+        // Цвета для фаз
+        const colors = {
+            phaseA: '#ffd700', // желтый
+            phaseB: '#00ff00', // зеленый
+            phaseC: '#ff0000'  // красный
+        };
+        
+        // Фиксированные диапазоны
+        const voltageRange = [100, 300]; // Напряжение от 100 до 300 В
+        const frequencyRange = [10, 70];  // Частота от 10 до 70 Гц
+        
+        // Смещения для графиков
+        const voltageOffsets = {
+            phaseA: 0,
+            phaseB: -10,    // Смещение вниз на 10 единиц
+            phaseC: -20     // Смещение вниз на 20 единиц
+        };
+        
+        const frequencyOffsets = {
+            phaseA: 0,
+            phaseB: -5,    // Смещение вниз на 5 единиц
+            phaseC: -10     // Смещение вниз на 10 единиц
+        };
+
+        // Обработчик загрузки файла
+        loadButton.addEventListener('click', () => {
+            if (fileInput.files.length === 0) {
+                alert('Пожалуйста, выберите файл');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const csvText = e.target.result;
+                parseCSV(csvText);
+            };
+            
+            reader.readAsText(file);
+        });
+        
+        // Парсинг CSV данных
+        function parseCSV(csvText) {
+            const rows = csvText.split('\n');
+            
+            data = [];
+            
+            // Пропускаем заголовок
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i].trim() === '') continue;
+                
+                const values = rows[i].split(',');
+                
+                if (values.length < 34) continue;
+                
+                // Парсинг даты и времени
+                const timestamp = new Date(values[0] + 'T' + values[1]);
+                
+                // Проверяем валидность даты
+                if (isNaN(timestamp.getTime())) {
+                    console.warn('Невалидная дата в строке', i, values[0], values[1]);
+                    continue;
+                }
+                
+                data.push({
+                    timestamp: timestamp,
+                    time: values[1],
+                    // Напряжения
+                    voltageA: parseFloat(values[2]),
+                    voltageAStatus: values[3],
+                    voltageB: parseFloat(values[4]),
+                    voltageBStatus: values[5],
+                    voltageC: parseFloat(values[6]),
+                    voltageCStatus: values[7],
+                    // Токи
+                    currentA: parseFloat(values[8]),
+                    currentAStatus: values[9],
+                    currentB: parseFloat(values[10]),
+                    currentBStatus: values[11],
+                    currentC: parseFloat(values[12]),
+                    currentCStatus: values[13],
+                    // Частоты
+                    frequencyA: parseFloat(values[14]),
+                    frequencyAStatus: values[15],
+                    frequencyB: parseFloat(values[16]),
+                    frequencyBStatus: values[17],
+                    frequencyC: parseFloat(values[18]),
+                    frequencyCStatus: values[19],
+                    // Углы напряжения
+                    angleVB: parseFloat(values[20]),
+                    angleVBStatus: values[21],
+                    angleVC: parseFloat(values[22]),
+                    angleVCStatus: values[23],
+                    // Углы тока (пока не используем)
+                    angleIA: parseFloat(values[24]),
+                    angleIAStatus: values[25],
+                    angleIB: parseFloat(values[26]),
+                    angleIBStatus: values[27],
+                    angleIC: parseFloat(values[28]),
+                    angleICStatus: values[29],
+                    // Мощности
+                    powerA: parseFloat(values[30]),
+                    powerB: parseFloat(values[31]),
+                    powerC: parseFloat(values[32]),
+                    status: parseInt(values[33])
+                });
+            }
+            
+            createCharts();
+            updateLegend();
+        }
+        
+        // Создание графиков
+        function createCharts() {
+            // Очистка предыдущих графиков
+            d3.select('#voltageChart').html('');
+            d3.select('#frequencyChart').html('');
+            d3.select('#anglesChart').html('');
+            d3.select('#currentChart').html('');
+            
+            // Удаляем старые подсказки
+            d3.selectAll('.tooltip').remove();
+            
+            // Создание графиков в зависимости от выбранных опций
+            if (voltageCheck.checked) {
+                createVoltageChart();
+                voltageChartContainer.style.display = 'block';
+                voltageTitle.style.display = 'block';
+            } else {
+                voltageChartContainer.style.display = 'none';
+                voltageTitle.style.display = 'none';
+            }
+            
+            if (frequencyCheck.checked) {
+                createFrequencyChart();
+                frequencyChartContainer.style.display = 'block';
+                frequencyTitle.style.display = 'block';
+            } else {
+                frequencyChartContainer.style.display = 'none';
+                frequencyTitle.style.display = 'none';
+            }
+            
+            if (anglesCheck.checked) {
+                createAnglesChart();
+                anglesChartContainer.style.display = 'block';
+                anglesTitle.style.display = 'block';
+            } else {
+                anglesChartContainer.style.display = 'none';
+                anglesTitle.style.display = 'none';
+            }
+            
+            if (currentCheck.checked) {
+                createCurrentChart();
+                currentChartContainer.style.display = 'block';
+                currentTitle.style.display = 'block';
+            } else {
+                currentChartContainer.style.display = 'none';
+                currentTitle.style.display = 'none';
+            }
+        }
+        
+        // Создание графика напряжения
+        function createVoltageChart() {
+            // Создание SVG элемента
+            const svg = d3.select('#voltageChart')
+                .append('svg')
+                .attr('width', chartWidth + margin.left + margin.right)
+                .attr('height', chartHeight + margin.top + margin.bottom);
+            
+            voltageSvg = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            
+            // Определение исходных доменов
+            const xDomain = d3.extent(data, d => d.timestamp);
+            
+            // Используем фиксированный диапазон для напряжения
+            const voltageDomain = voltageRange;
+            
+            // Определение шкал
+            voltageXScale = d3.scaleTime()
+                .domain(xDomain)
+                .range([0, chartWidth]);
+            
+            voltageYScale = d3.scaleLinear()
+                .domain(voltageDomain)
+                .range([chartHeight, 0]);
+            
+            // Создание осей
+            voltageXAxis = voltageSvg.append('g')
+                .attr('transform', `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(voltageXScale)
+                    .tickFormat(d3.timeFormat('%H:%M:%S')));
+            
+            voltageYAxis = voltageSvg.append('g')
+                .call(d3.axisLeft(voltageYScale));
+            
+            // Подписи осей
+            voltageSvg.append('text')
+                .attr('transform', `translate(${chartWidth / 2},${chartHeight + margin.bottom - 10})`)
+                .style('text-anchor', 'middle')
+                .text('Время');
+            
+            voltageSvg.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', 0 - margin.left)
+                .attr('x', 0 - (chartHeight / 2))
+                .attr('dy', '1em')
+                .style('text-anchor', 'middle')
+                .text('Напряжение (В)');
+            
+            // Создание линий напряжения
+            drawVoltageLines();
+            
+            // Добавление подсказки
+            const tooltip = d3.select('body').append('div')
+                .attr('class', 'tooltip')
+                .attr('id', 'voltageTooltip');
+            
+            // Добавление точек и подсказок
+            addTooltips(voltageSvg, voltageXScale, voltageYScale, 'voltage');
+            
+            // Настройка поведения зума
+            setupZoom(svg, voltageXScale, voltageYScale, voltageXAxis, voltageYAxis, updateVoltageLines, 'voltage');
+        }
+        
+        // Создание графика частоты
+        function createFrequencyChart() {
+            // Создание SVG элемента
+            const svg = d3.select('#frequencyChart')
+                .append('svg')
+                .attr('width', chartWidth + margin.left + margin.right)
+                .attr('height', chartHeight + margin.top + margin.bottom);
+            
+            frequencySvg = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            
+            // Определение исходных доменов
+            const xDomain = d3.extent(data, d => d.timestamp);
+            
+            // Используем фиксированный диапазон для частоты
+            const frequencyDomain = frequencyRange;
+            
+            // Определение шкал
+            frequencyXScale = d3.scaleTime()
+                .domain(xDomain)
+                .range([0, chartWidth]);
+            
+            frequencyYScale = d3.scaleLinear()
+                .domain(frequencyDomain)
+                .range([chartHeight, 0]);
+            
+            // Создание осей
+            frequencyXAxis = frequencySvg.append('g')
+                .attr('transform', `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(frequencyXScale)
+                    .tickFormat(d3.timeFormat('%H:%M:%S')));
+            
+            frequencyYAxis = frequencySvg.append('g')
+                .call(d3.axisLeft(frequencyYScale));
+            
+            // Подписи осей
+            frequencySvg.append('text')
+                .attr('transform', `translate(${chartWidth / 2},${chartHeight + margin.bottom - 10})`)
+                .style('text-anchor', 'middle')
+                .text('Время');
+            
+            frequencySvg.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', 0 - margin.left)
+                .attr('x', 0 - (chartHeight / 2))
+                .attr('dy', '1em')
+                .style('text-anchor', 'middle')
+                .text('Частота (Гц)');
+            
+            // Создание линий частоты
+            drawFrequencyLines();
+            
+            // Добавление подсказки
+            const tooltip = d3.select('body').append('div')
+                .attr('class', 'tooltip')
+                .attr('id', 'frequencyTooltip');
+            
+            // Добавление точек и подсказок
+            addTooltips(frequencySvg, frequencyXScale, frequencyYScale, 'frequency');
+            
+            // Настройка поведения зума
+            setupZoom(svg, frequencyXScale, frequencyYScale, frequencyXAxis, frequencyYAxis, updateFrequencyLines, 'frequency');
+        }
+        
+        // Создание графика углов
+        function createAnglesChart() {
+            // Создание SVG элемента
+            const svg = d3.select('#anglesChart')
+                .append('svg')
+                .attr('width', chartWidth + margin.left + margin.right)
+                .attr('height', chartHeight + margin.top + margin.bottom);
+            
+            anglesSvg = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            
+            // Определение исходных доменов
+            const xDomain = d3.extent(data, d => d.timestamp);
+            const anglesDomain = d3.extent([
+                ...data.map(d => d.angleVB),
+                ...data.map(d => d.angleVC)
+            ]);
+            
+            // Определение шкал
+            anglesXScale = d3.scaleTime()
+                .domain(xDomain)
+                .range([0, chartWidth]);
+            
+            anglesYScale = d3.scaleLinear()
+                .domain(anglesDomain)
+                .range([chartHeight, 0]);
+            
+            // Создание осей
+            anglesXAxis = anglesSvg.append('g')
+                .attr('transform', `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(anglesXScale)
+                    .tickFormat(d3.timeFormat('%H:%M:%S')));
+            
+            anglesYAxis = anglesSvg.append('g')
+                .call(d3.axisLeft(anglesYScale));
+            
+            // Подписи осей
+            anglesSvg.append('text')
+                .attr('transform', `translate(${chartWidth / 2},${chartHeight + margin.bottom - 10})`)
+                .style('text-anchor', 'middle')
+                .text('Время');
+            
+            anglesSvg.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', 0 - margin.left)
+                .attr('x', 0 - (chartHeight / 2))
+                .attr('dy', '1em')
+                .style('text-anchor', 'middle')
+                .text('Углы напряжения');
+            
+            // Создание линий углов
+            drawAnglesLines();
+            
+            // Добавление подсказки
+            const tooltip = d3.select('body').append('div')
+                .attr('class', 'tooltip')
+                .attr('id', 'anglesTooltip');
+            
+            // Добавление точек и подсказок
+            addTooltips(anglesSvg, anglesXScale, anglesYScale, 'angles');
+            
+            // Настройка поведения зума
+            setupZoom(svg, anglesXScale, anglesYScale, anglesXAxis, anglesYAxis, updateAnglesLines, 'angles');
+        }
+        
+        // Создание графика тока
+        function createCurrentChart() {
+            // Создание SVG элемента
+            const svg = d3.select('#currentChart')
+                .append('svg')
+                .attr('width', chartWidth + margin.left + margin.right)
+                .attr('height', chartHeight + margin.top + margin.bottom);
+            
+            currentSvg = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            
+            // Определение исходных доменов
+            const xDomain = d3.extent(data, d => d.timestamp);
+            const currentDomain = d3.extent([
+                ...data.map(d => d.currentA),
+                ...data.map(d => d.currentB),
+                ...data.map(d => d.currentC)
+            ]);
+            
+            // Определение шкал
+            currentXScale = d3.scaleTime()
+                .domain(xDomain)
+                .range([0, chartWidth]);
+            
+            currentYScale = d3.scaleLinear()
+                .domain(currentDomain)
+                .range([chartHeight, 0]);
+            
+            // Создание осей
+            currentXAxis = currentSvg.append('g')
+                .attr('transform', `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(currentXScale)
+                    .tickFormat(d3.timeFormat('%H:%M:%S')));
+            
+            currentYAxis = currentSvg.append('g')
+                .call(d3.axisLeft(currentYScale));
+            
+            // Подписи осей
+            currentSvg.append('text')
+                .attr('transform', `translate(${chartWidth / 2},${chartHeight + margin.bottom - 10})`)
+                .style('text-anchor', 'middle')
+                .text('Время');
+            
+            currentSvg.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', 0 - margin.left)
+                .attr('x', 0 - (chartHeight / 2))
+                .attr('dy', '1em')
+                .style('text-anchor', 'middle')
+                .text('Ток (А)');
+            
+            // Создание линий тока
+            drawCurrentLines();
+            
+            // Добавление подсказки
+            const tooltip = d3.select('body').append('div')
+                .attr('class', 'tooltip')
+                .attr('id', 'currentTooltip');
+            
+            // Добавление точек и подсказок
+            addTooltips(currentSvg, currentXScale, currentYScale, 'current');
+            
+            // Настройка поведения зума
+            setupZoom(svg, currentXScale, currentYScale, currentXAxis, currentYAxis, updateCurrentLines, 'current');
+        }
+        
+        // Отрисовка линий напряжения
+        function drawVoltageLines() {
+            // Линия напряжения фазы A
+            const voltageALine = d3.line()
+                .x(d => voltageXScale(d.timestamp))
+                .y(d => voltageYScale(d.voltageA + voltageOffsets.phaseA));
+            
+            voltageSvg.append('path')
+                .datum(data)
+                .attr('class', 'line voltageA-line')
+                .attr('d', voltageALine)
+                .style('stroke', colors.phaseA)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+            
+            // Линия напряжения фазы B
+            const voltageBLine = d3.line()
+                .x(d => voltageXScale(d.timestamp))
+                .y(d => voltageYScale(d.voltageB + voltageOffsets.phaseB));
+            
+            voltageSvg.append('path')
+                .datum(data)
+                .attr('class', 'line voltageB-line')
+                .attr('d', voltageBLine)
+                .style('stroke', colors.phaseB)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+            
+            // Линия напряжения фазы C
+            const voltageCLine = d3.line()
+                .x(d => voltageXScale(d.timestamp))
+                .y(d => voltageYScale(d.voltageC + voltageOffsets.phaseC));
+            
+            voltageSvg.append('path')
+                .datum(data)
+                .attr('class', 'line voltageC-line')
+                .attr('d', voltageCLine)
+                .style('stroke', colors.phaseC)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+        }
+        
+        // Отрисовка линий частоты
+        function drawFrequencyLines() {
+            // Линия частоты фазы A
+            const frequencyALine = d3.line()
+                .x(d => frequencyXScale(d.timestamp))
+                .y(d => frequencyYScale(d.frequencyA + frequencyOffsets.phaseA));
+            
+            frequencySvg.append('path')
+                .datum(data)
+                .attr('class', 'line frequencyA-line')
+                .attr('d', frequencyALine)
+                .style('stroke', colors.phaseA)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+            
+            // Линия частоты фазы B
+            const frequencyBLine = d3.line()
+                .x(d => frequencyXScale(d.timestamp))
+                .y(d => frequencyYScale(d.frequencyB + frequencyOffsets.phaseB));
+            
+            frequencySvg.append('path')
+                .datum(data)
+                .attr('class', 'line frequencyB-line')
+                .attr('d', frequencyBLine)
+                .style('stroke', colors.phaseB)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+            
+            // Линия частоты фазы C
+            const frequencyCLine = d3.line()
+                .x(d => frequencyXScale(d.timestamp))
+                .y(d => frequencyYScale(d.frequencyC + frequencyOffsets.phaseC));
+            
+            frequencySvg.append('path')
+                .datum(data)
+                .attr('class', 'line frequencyC-line')
+                .attr('d', frequencyCLine)
+                .style('stroke', colors.phaseC)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+        }
+        
+        // Отрисовка линий углов
+        function drawAnglesLines() {
+            // Линия угла V B
+            const angleVBLine = d3.line()
+                .x(d => anglesXScale(d.timestamp))
+                .y(d => anglesYScale(d.angleVB));
+            
+            anglesSvg.append('path')
+                .datum(data)
+                .attr('class', 'line angleVB-line')
+                .attr('d', angleVBLine)
+                .style('stroke', colors.phaseB)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+            
+            // Линия угла V C
+            const angleVCLine = d3.line()
+                .x(d => anglesXScale(d.timestamp))
+                .y(d => anglesYScale(d.angleVC));
+            
+            anglesSvg.append('path')
+                .datum(data)
+                .attr('class', 'line angleVC-line')
+                .attr('d', angleVCLine)
+                .style('stroke', colors.phaseC)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+        }
+        
+        // Отрисовка линий тока
+        function drawCurrentLines() {
+            // Линия тока фазы A
+            const currentALine = d3.line()
+                .x(d => currentXScale(d.timestamp))
+                .y(d => currentYScale(d.currentA));
+            
+            currentSvg.append('path')
+                .datum(data)
+                .attr('class', 'line currentA-line')
+                .attr('d', currentALine)
+                .style('stroke', colors.phaseA)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+            
+            // Линия тока фазы B
+            const currentBLine = d3.line()
+                .x(d => currentXScale(d.timestamp))
+                .y(d => currentYScale(d.currentB));
+            
+            currentSvg.append('path')
+                .datum(data)
+                .attr('class', 'line currentB-line')
+                .attr('d', currentBLine)
+                .style('stroke', colors.phaseB)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+            
+            // Линия тока фазы C
+            const currentCLine = d3.line()
+                .x(d => currentXScale(d.timestamp))
+                .y(d => currentYScale(d.currentC));
+            
+            currentSvg.append('path')
+                .datum(data)
+                .attr('class', 'line currentC-line')
+                .attr('d', currentCLine)
+                .style('stroke', colors.phaseC)
+                .style('stroke-width', 2)
+                .style('fill', 'none');
+        }
+
+        // Добавление подсказок
+        function addTooltips(svg, xScale, yScale, type) {
+            svg.selectAll('.dot-group')
+                .data(data)
+                .enter()
+                .append('circle')
+                .attr('class', 'dot')
+                .attr('cx', d => xScale(d.timestamp))
+                .attr('cy', d => {
+                    switch(type) {
+                        case 'voltage': return yScale(d.voltageA + voltageOffsets.phaseA);
+                        case 'frequency': return yScale(d.frequencyA + frequencyOffsets.phaseA);
+                        case 'angles': return yScale(d.angleVB);
+                        case 'current': return yScale(d.currentA);
+                    }
+                })
+                .attr('r', 3)
+                .style('fill', 'transparent')
+                .on('mouseover', function(event, d) {
+                    const tooltip = d3.select(`#${type}Tooltip`);
+                    let html = `<div>Время: ${d.time}</div>`;
+                    
+                    switch(type) {
+                        case 'voltage':
+                            html += `<div>Фаза A: ${d.voltageA} В</div>`;
+                            html += `<div>Фаза B: ${d.voltageB} В</div>`;
+                            html += `<div>Фаза C: ${d.voltageC} В</div>`;
+                            break;
+                        case 'frequency':
+                            html += `<div>Фаза A: ${d.frequencyA} Гц</div>`;
+                            html += `<div>Фаза B: ${d.frequencyB} Гц</div>`;
+                            html += `<div>Фаза C: ${d.frequencyC} Гц</div>`;
+                            break;
+                        case 'angles':
+                            html += `<div>Угол V B: ${d.angleVB}°</div>`;
+                            html += `<div>Угол V C: ${d.angleVC}°</div>`;
+                            break;
+                        case 'current':
+                            html += `<div>Фаза A: ${d.currentA} А</div>`;
+                            html += `<div>Фаза B: ${d.currentB} А</div>`;
+                            html += `<div>Фаза C: ${d.currentC} А</div>`;
+                            break;
+                    }
+                    
+                    tooltip
+                        .style('opacity', 1)
+                        .html(html)
+                        .style('left', (event.pageX + 10) + 'px')
+                        .style('top', (event.pageY - 28) + 'px');
+                })
+                .on('mouseout', function() {
+                    d3.select(`#${type}Tooltip`).style('opacity', 0);
+                });
+        }
+
+        // Настройка зума
+        function setupZoom(svg, xScale, yScale, xAxis, yAxis, updateLines, type) {
+            const zoomBehavior = d3.zoom()
+                .scaleExtent([0.5, 20])
+                .translateExtent([[0, 0], [chartWidth, chartHeight]])
+                .extent([[0, 0], [chartWidth, chartHeight]])
+                .on('zoom', function(event) {
+                    const newXScale = event.transform.rescaleX(xScale);
+                    const newYScale = event.transform.rescaleY(yScale);
+                    
+                    xAxis.call(d3.axisBottom(newXScale).tickFormat(d3.timeFormat('%H:%M:%S')));
+                    yAxis.call(d3.axisLeft(newYScale));
+                    
+                    updateLines(newXScale, newYScale);
+                    
+                    // Обновление точек подсказок
+                    svg.selectAll('.dot')
+                        .attr('cx', d => newXScale(d.timestamp))
+                        .attr('cy', d => {
+                            switch(type) {
+                                case 'voltage': return newYScale(d.voltageA + voltageOffsets.phaseA);
+                                case 'frequency': return newYScale(d.frequencyA + frequencyOffsets.phaseA);
+                                case 'angles': return newYScale(d.angleVB);
+                                case 'current': return newYScale(d.currentA);
+                            }
+                        });
+                });
+            
+            // Сохраняем зум для данного типа графика
+            switch(type) {
+                case 'voltage': voltageZoom = zoomBehavior; break;
+                case 'frequency': frequencyZoom = zoomBehavior; break;
+                case 'angles': anglesZoom = zoomBehavior; break;
+                case 'current': currentZoom = zoomBehavior; break;
+            }
+            
+            svg.call(zoomBehavior);
+        }
+        
+        // Обновление линий при зуме
+        function updateVoltageLines(newXScale, newYScale) {
+            const voltageALine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.voltageA + voltageOffsets.phaseA));
+            voltageSvg.select('.voltageA-line').attr('d', voltageALine);
+            
+            const voltageBLine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.voltageB + voltageOffsets.phaseB));
+            voltageSvg.select('.voltageB-line').attr('d', voltageBLine);
+            
+            const voltageCLine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.voltageC + voltageOffsets.phaseC));
+            voltageSvg.select('.voltageC-line').attr('d', voltageCLine);
+        }
+        
+        function updateFrequencyLines(newXScale, newYScale) {
+            const frequencyALine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.frequencyA + frequencyOffsets.phaseA));
+            frequencySvg.select('.frequencyA-line').attr('d', frequencyALine);
+            
+            const frequencyBLine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.frequencyB + frequencyOffsets.phaseB));
+            frequencySvg.select('.frequencyB-line').attr('d', frequencyBLine);
+            
+            const frequencyCLine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.frequencyC + frequencyOffsets.phaseC));
+            frequencySvg.select('.frequencyC-line').attr('d', frequencyCLine);
+        }
+        
+        function updateAnglesLines(newXScale, newYScale) {
+            const angleVBLine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.angleVB));
+            anglesSvg.select('.angleVB-line').attr('d', angleVBLine);
+            
+            const angleVCLine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.angleVC));
+            anglesSvg.select('.angleVC-line').attr('d', angleVCLine);
+        }
+        
+        function updateCurrentLines(newXScale, newYScale) {
+            const currentALine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.currentA));
+            currentSvg.select('.currentA-line').attr('d', currentALine);
+            
+            const currentBLine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.currentB));
+            currentSvg.select('.currentB-line').attr('d', currentBLine);
+            
+            const currentCLine = d3.line()
+                .x(d => newXScale(d.timestamp))
+                .y(d => newYScale(d.currentC));
+            currentSvg.select('.currentC-line').attr('d', currentCLine);
+        }
+        
+        // Обновление легенды
+        function updateLegend() {
+            legendContainer.innerHTML = '';
+            
+            addLegendItem('Фаза A', colors.phaseA);
+            addLegendItem('Фаза B', colors.phaseB);
+            addLegendItem('Фаза C', colors.phaseC);
+        }
+        
+        function addLegendItem(text, color) {
+            const item = document.createElement('div');
+            item.className = 'legend-item';
+            const colorDiv = document.createElement('div');
+            colorDiv.className = 'legend-color';
+            colorDiv.style.backgroundColor = color;
+            item.appendChild(colorDiv);
+            item.appendChild(document.createTextNode(text));
+            legendContainer.appendChild(item);
+        }
+        
+        // Обработчики кнопок зума
+        zoomInBtn.addEventListener('click', () => {
+            applyZoomToAll(1.5);
+        });
+        
+        zoomOutBtn.addEventListener('click', () => {
+            applyZoomToAll(0.67);
+        });
+        
+        resetZoomBtn.addEventListener('click', () => {
+            resetZoomForAll();
+        });
+        
+        function applyZoomToAll(factor) {
+            const charts = [
+                { container: '#voltageChart', zoom: voltageZoom, check: voltageCheck },
+                { container: '#frequencyChart', zoom: frequencyZoom, check: frequencyCheck },
+                { container: '#anglesChart', zoom: anglesZoom, check: anglesCheck },
+                { container: '#currentChart', zoom: currentZoom, check: currentCheck }
+            ];
+            
+            charts.forEach(chart => {
+                if (chart.check.checked && chart.zoom) {
+                    const svg = d3.select(chart.container).select('svg');
+                    const currentTransform = d3.zoomTransform(svg.node());
+                    const newTransform = currentTransform.scale(factor);
+                    svg.transition().duration(300).call(chart.zoom.transform, newTransform);
+                }
+            });
+        }
+        
+        function resetZoomForAll() {
+            const charts = [
+                { container: '#voltageChart', zoom: voltageZoom, check: voltageCheck },
+                { container: '#frequencyChart', zoom: frequencyZoom, check: frequencyCheck },
+                { container: '#anglesChart', zoom: anglesZoom, check: anglesCheck },
+                { container: '#currentChart', zoom: currentZoom, check: currentCheck }
+            ];
+            
+            charts.forEach(chart => {
+                if (chart.check.checked && chart.zoom) {
+                    const svg = d3.select(chart.container).select('svg');
+                    svg.transition().duration(300).call(chart.zoom.transform, d3.zoomIdentity);
+                }
+            });
+        }
+        
+        // Обработчики изменения состояния чекбоксов
+        voltageCheck.addEventListener('change', updateCharts);
+        frequencyCheck.addEventListener('change', updateCharts);
+        anglesCheck.addEventListener('change', updateCharts);
+        currentCheck.addEventListener('change', updateCharts);
+        
+        // Обновление графиков при изменении состояния чекбоксов
+        function updateCharts() {
+            if (data.length > 0) {
+                createCharts();
+                updateLegend();
+            }
+        }
+        
+        // Обработчик изменения размера окна
+        window.addEventListener('resize', function() {
+            if (data.length > 0) {
+                chartWidth = voltageChartContainer.clientWidth - margin.left - margin.right;
+                chartHeight = voltageChartContainer.clientHeight - margin.top - margin.bottom;
+                createCharts();
+            }
+        });
+    </script>
+</body>
+</html>
