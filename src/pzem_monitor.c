@@ -831,14 +831,6 @@ int load_config(const char *config_file, pzem_config_t *config) {
 
 // Функция для сравнения значений с учетом чувствительности
 int values_changed(const pzem_data_t *current, const pzem_data_t *previous, const pzem_config_t *config) {
-    if (current->first_read) {
-        if (current->angleV_B < 200 && current->angleV_B > 100 && current->angleV_C > 200) {
-            rotaryP = "R";
-        } else {
-            rotaryP = "L";
-        }
-        syslog(LOG_INFO, "The order of rotation of the phases (L - reverse, R - forward): %s", rotaryP);
-    }
     if (previous->first_read) return 1;
     if (current->status != previous->status) return 1;
     if (fabsf(current->voltage_A - previous->voltage_A) > config->voltage_sensitivity) return 1;
@@ -1164,6 +1156,14 @@ int main(int argc, char *argv[]) {
         } else {
             // Обновляем состояния порогов только при успешном чтении
             update_threshold_states(&current_data, &global_config);
+            if (current_data.first_read) {
+                if (current_data.angleV_B < 200 && current_data.angleV_B > 100 && current_data.angleV_C > 200) {
+                    current_data.rotaryP = "R";
+                } else {
+                    current_data.rotaryP = "L";
+                }
+                syslog(LOG_INFO, "The order of rotation of the phases (L - reverse, R - forward): %s", current_data.rotaryP);
+            }
         }
 
         // Проверяем изменения значений ИЛИ изменений состояний порогов

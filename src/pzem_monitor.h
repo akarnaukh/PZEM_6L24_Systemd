@@ -127,6 +127,8 @@ typedef struct {
     char angleI_state_A;
     char angleI_state_B;
     char angleI_state_C;
+
+    char rotaryP;
     
 } pzem_data_t;
 
@@ -147,7 +149,6 @@ extern log_buffer_t log_buffer;
 extern pzem_config_t global_config;
 extern char *service_name;
 extern char config_name[64];
-extern char rotaryP;
 
 // Функции конфигурации
 int load_config(const char *config_file, pzem_config_t *config);
