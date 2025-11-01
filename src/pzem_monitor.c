@@ -626,6 +626,7 @@ int validate_config(const pzem_config_t *config) {
     return 0;
 }
 
+// Функция загрузки конфигурации из файла
 int load_config(const char *config_file, pzem_config_t *config) {
     FILE *file;
     char line[256];
@@ -788,6 +789,36 @@ int load_config(const char *config_file, pzem_config_t *config) {
                config->poll_interval_ms, config->log_buffer_size);
     }
 
+    return 0;
+}
+
+// Функция для сравнения значений с учетом чувствительности
+int values_changed(const pzem_data_t *current, const pzem_data_t *previous, const pzem_config_t *config) {
+    if (previous->first_read) return 1;
+    if (current->status != previous->status) return 1;
+    if (fabsf(current->voltage_A - previous->voltage_A) > config->voltage_sensitivity) return 1;
+    if (fabsf(current->voltage_B - previous->voltage_B) > config->voltage_sensitivity) return 1;
+    if (fabsf(current->voltage_C - previous->voltage_C) > config->voltage_sensitivity) return 1;
+
+    if (fabsf(current->current_A - previous->current_A) > config->current_sensitivity) return 1;
+    if (fabsf(current->current_B - previous->current_B) > config->current_sensitivity) return 1;
+    if (fabsf(current->current_C - previous->current_C) > config->current_sensitivity) return 1;
+
+    if (fabsf(current->frequency_A - previous->frequency_A) > config->frequency_sensitivity) return 1;
+    if (fabsf(current->frequency_B - previous->frequency_B) > config->frequency_sensitivity) return 1;
+    if (fabsf(current->frequency_C - previous->frequency_C) > config->frequency_sensitivity) return 1;
+
+    if (fabsf(current->angleV_B - previous->angleV_B) > config->angleV_sensitivity) return 1;
+    if (fabsf(current->angleV_C - previous->angleV_C) > config->angleV_sensitivity) return 1;
+
+    if (fabsf(current->angleI_A - previous->angleI_A) > config->angleI_sensitivity) return 1;
+    if (fabsf(current->angleI_B - previous->angleI_B) > config->angleI_sensitivity) return 1;
+    if (fabsf(current->angleI_C - previous->angleI_C) > config->angleI_sensitivity) return 1;
+
+    if (fabsf(current->power_A - previous->power_A) > config->power_sensitivity) return 1;
+    if (fabsf(current->power_B - previous->power_B) > config->power_sensitivity) return 1;
+    if (fabsf(current->power_C - previous->power_C) > config->power_sensitivity) return 1;
+    
     return 0;
 }
 
