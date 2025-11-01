@@ -634,7 +634,7 @@ int load_config(const char *config_file, pzem_config_t *config) {
     
     // Установка значений по умолчанию одной операцией
     *config = (pzem_config_t){
-        .tty_port = "/dev/ttyS1",
+        .tty_port = "/dev/ttyS1@9600",  // теперь храним полную строку устройства
         .baudrate = 9600,
         .slave_addr = 1,
         .poll_interval_ms = 500,
@@ -668,11 +668,10 @@ int load_config(const char *config_file, pzem_config_t *config) {
     
     config_map_t config_map[] = {
         // Строковые параметры
-        {"tty_port", config->tty_port, 0, sizeof(config->tty_port)},
+        {"device", config->tty_port, 0, sizeof(config->tty_port)}, // изменено с tty_port на device
         {"log_dir", config->log_dir, 0, sizeof(config->log_dir)},
         
         // Целочисленные параметры
-        {"baudrate", &config->baudrate, 1, 0},
         {"slave_addr", &config->slave_addr, 1, 0},
         {"poll_interval_ms", &config->poll_interval_ms, 1, 0},
         {"log_buffer_size", &config->log_buffer_size, 1, 0},
@@ -755,6 +754,72 @@ int load_config(const char *config_file, pzem_config_t *config) {
     
     fclose(file);
 
+    // Анализ параметра device для определения типа устройства
+    char device_str[128];
+    strncpy(device_str, config->tty_port, sizeof(device_str) - 1);
+    device_str[sizeof(device_str) - 1] = '\0';
+    
+    if (strchr(device_str, '@')) {
+        // UART устройство: /dev/ttyS1@9600
+        device_type = 'U';
+        
+        // Разделяем на устройство и скорость
+        char *port_part = strtok(device_str, "@");
+        char *baud_part = strtok(NULL, "@");
+        
+        if (port_part && baud_part) {
+            // Сохраняем только часть до @ в tty_port
+            strncpy(config->tty_port, port_part, sizeof(config->tty_port) - 1);
+            config->tty_port[sizeof(config->tty_port) - 1] = '\0';
+            
+            // Устанавливаем скорость
+            config->baudrate = atoi(baud_part);
+            if (config->baudrate <= 0) {
+                syslog(LOG_WARNING, "Invalid baudrate '%s', using default 9600", baud_part);
+                config->baudrate = 9600;
+            }
+        } else {
+            syslog(LOG_WARNING, "Invalid UART device format: '%s', using defaults", device_str);
+            strcpy(config->tty_port, "/dev/ttyS1");
+            config->baudrate = 9600;
+        }
+        
+        syslog(LOG_INFO, "UART device: %s, baudrate: %d", config->tty_port, config->baudrate);
+        
+    } else if (strchr(device_str, ':')) {
+        // TCP устройство: 192.168.1.100:5201
+        device_type = 'T';
+        
+        // Разделяем на IP и порт
+        char *ip_part = strtok(device_str, ":");
+        char *port_part = strtok(NULL, ":");
+        
+        if (ip_part && port_part) {
+            // Сохраняем IP в tty_port
+            strncpy(config->tty_port, ip_part, sizeof(config->tty_port) - 1);
+            config->tty_port[sizeof(config->tty_port) - 1] = '\0';
+            
+            // Сохраняем порт в baudrate (для совместимости с modbus)
+            config->baudrate = atoi(port_part);
+            if (config->baudrate <= 0 || config->baudrate > 65535) {
+                syslog(LOG_WARNING, "Invalid TCP port '%s', using default 502", port_part);
+                config->baudrate = 502;
+            }
+        } else {
+            syslog(LOG_WARNING, "Invalid TCP device format: '%s', using defaults", device_str);
+            strcpy(config->tty_port, "127.0.0.1");
+            config->baudrate = 502;
+        }
+        
+        syslog(LOG_INFO, "TCP device: %s, port: %d", config->tty_port, config->baudrate);
+        
+    } else {
+        // Неизвестный формат, предполагаем UART с default baudrate
+        device_type = 'U';
+        syslog(LOG_WARNING, "Unknown device format: '%s', assuming UART with default baudrate 9600", device_str);
+        config->baudrate = 9600;
+    }
+
     // Проверки корректности значений
     int config_changed = 0;
     
@@ -824,7 +889,17 @@ int values_changed(const pzem_data_t *current, const pzem_data_t *previous, cons
 
 // Функция инициализации Modbus соединения
 int init_modbus_connection(const pzem_config_t *config) {
-    ctx = modbus_new_rtu(config->tty_port, config->baudrate, 'N', 8, 1);
+    // Инициализация modbus в зависимости от типа устройства
+    if (device_type == 'U') {
+    // UART - используем tty_port и baudrate как скорость
+        ctx = modbus_new_rtu(config->tty_port, config->baudrate, 'N', 8, 1);
+    } else if (device_type == 'T') {
+    // TCP - используем tty_port как IP и baudrate как порт
+        ctx = modbus_new_tcp(config->tty_port, config->baudrate);
+    }
+    //ctx = modbus_new_rtu(config->tty_port, config->baudrate, 'N', 8, 1);
+    modbus_set_error_recovery(ctx, MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL);
+    
     if (ctx == NULL) {
         syslog(LOG_ERR, "Unable to create Modbus context for %s", config->tty_port);
         return -1;

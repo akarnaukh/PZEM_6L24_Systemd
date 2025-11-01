@@ -84,8 +84,9 @@ sudo rm -rf /var/log/pzem3 # или как указано в конфигура�
 # PZEM-6L24 Default Configuration
 
 # Serial port settings
-tty_port = /dev/ttyS1 
-baudrate = 9600
+device = /dev/ttyS1@9600
+# or TCP device settings
+# device = 192.168.0.10:502
 slave_addr = 1
 # Период опроса в мс (допустимый диапазон 200 - 10000мс)
 poll_interval_ms = 500 

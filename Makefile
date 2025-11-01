@@ -58,8 +58,10 @@ templates: | $(CONFIGDIR) $(SYSTEMDDIR)
 	@echo "# PZEM-6L24 Default Configuration" > $(CONFIGDIR)/pzem3_default.conf
 	@echo "" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "# Serial port settings" >> $(CONFIGDIR)/pzem3_default.conf
-	@echo "tty_port = /dev/ttyS1" >> $(CONFIGDIR)/pzem3_default.conf
-	@echo "baudrate = 9600" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "device = /dev/ttyS1@9600" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "# or TCP device settings" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "# device = 192.168.0.10:502" >> $(CONFIGDIR)/pzem3_default.conf
+	@echo "" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "slave_addr = 1" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "poll_interval_ms = 500 # Диапазон периода 200 - 10000мс" >> $(CONFIGDIR)/pzem3_default.conf
 	@echo "" >> $(CONFIGDIR)/pzem3_default.conf
