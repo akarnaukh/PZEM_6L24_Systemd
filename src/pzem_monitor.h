@@ -34,9 +34,36 @@ THE SOFTWARE.
 #include <sys/stat.h>
 #include <time.h>
 #include <syslog.h>
-#include <fcntl.h>      // для O_NONBLOCK
+#include <fcntl.h>
+#include <pthread.h>
 
-#define PZEM_FIFO_PATH "/tmp/pzem3_data_%s"  // %s будет заменен на config_name
+#define PZEM_FIFO_PATH "/tmp/pzem3_data_%s"
+#define MAX_RETRIES 3
+#define DEFAULT_POLL_INTERVAL 500
+#define MAX_LOG_BUFFER_SIZE 25
+#define MIN_POLL_INTERVAL 200
+#define MAX_POLL_INTERVAL 10000
+
+// Макросы для безопасного копирования строк
+#define STRCPY_SAFE(dest, src) do { \
+    strncpy(dest, src, sizeof(dest) - 1); \
+    dest[sizeof(dest) - 1] = '\0'; \
+} while(0)
+
+#define STRNCPY_SAFE(dest, src, count) do { \
+    strncpy(dest, src, (count) < sizeof(dest) ? (count) : sizeof(dest) - 1); \
+    dest[sizeof(dest) - 1] = '\0'; \
+} while(0)
+
+// Коды возврата
+typedef enum {
+    PZEM_SUCCESS = 0,
+    PZEM_ERROR_CONFIG = -1,
+    PZEM_ERROR_MODBUS = -2,
+    PZEM_ERROR_IO = -3,
+    PZEM_ERROR_MEMORY = -4,
+    PZEM_ERROR_INVALID_PARAM = -5
+} pzem_result_t;
 
 // Структура для хранения конфигурации
 typedef struct {
@@ -45,7 +72,7 @@ typedef struct {
     int slave_addr;
     int poll_interval_ms;
     char log_dir[256];
-    int log_buffer_size;  // Добавляем размер буфера
+    int log_buffer_size;
     
     // Чувствительность изменений
     float voltage_sensitivity;
@@ -55,31 +82,27 @@ typedef struct {
     float angleV_sensitivity;
     float angleI_sensitivity;
 
-    // Пороги угла фаз напряжения
+    // Пороги
     float angleV_high_alarm;
     float angleV_high_warning;
     float angleV_low_warning;
     float angleV_low_alarm;
 
-    // Пороги угла фаз ток
     float angleI_high_alarm;
     float angleI_high_warning;
     float angleI_low_warning;
     float angleI_low_alarm;
 
-    // Пороги напряжения
     float voltage_high_alarm;
     float voltage_high_warning;
     float voltage_low_warning;
     float voltage_low_alarm;
     
-    // Пороги тока
     float current_high_alarm;
     float current_high_warning;
     float current_low_warning;
     float current_low_alarm;
     
-    // Пороги частоты
     float frequency_high_alarm;
     float frequency_high_warning;
     float frequency_low_warning;
@@ -108,36 +131,25 @@ typedef struct {
     int status;
     int first_read;
     
-    // Состояния порогов: 'H' - высокое, 'L' - низкое, 'N' - норма
+    // Состояния порогов
     char voltage_state_A;
     char voltage_state_B;
     char voltage_state_C;
-
     char current_state_A;
     char current_state_B;
     char current_state_C;
-    
     char frequency_state_A;
     char frequency_state_B;
     char frequency_state_C;
-
     char angleV_state_B;
     char angleV_state_C;
-
     char angleI_state_A;
     char angleI_state_B;
     char angleI_state_C;
-
     char rotaryP;
-    
 } pzem_data_t;
 
-// Вспомогательные структуры для обновления состояний порогов
-typedef struct {
-    float value;
-    char* state;
-} threshold_param_t;
-
+// Структура для порогов
 typedef struct {
     float high_alarm;
     float high_warning;
@@ -150,36 +162,51 @@ typedef struct {
     char **buffer;
     int size;
     int capacity;
+    int read_index;
     int write_index;
+    pthread_mutex_t mutex;
     char log_dir[256];
     char config_name[64];
 } log_buffer_t;
 
+// Структура для метрик производительности
+typedef struct {
+    long long total_iterations;
+    long long error_count;
+    long long modbus_time_total;
+    long long processing_time_total;
+    long long max_iteration_time;
+    long long start_time;
+} performance_metrics_t;
+
 // Глобальные переменные
 extern modbus_t *ctx;
-extern volatile int keep_running;
+extern volatile sig_atomic_t keep_running;
 extern log_buffer_t log_buffer;
 extern pzem_config_t global_config;
 extern char *service_name;
 extern char config_name[64];
+extern char fifo_path[256];
+extern char device_type;
+extern performance_metrics_t metrics;
 
 // Функции конфигурации
-int load_config(const char *config_file, pzem_config_t *config);
+pzem_result_t load_config(const char *config_file, pzem_config_t *config);
 int create_directory_if_not_exists(const char *path);
-int validate_config(const pzem_config_t *config);
+pzem_result_t validate_config(const pzem_config_t *config);
 void extract_config_name(const char *config_path);
 
 // Функции для FIFO
 int init_data_fifo(const char *fifo_path);
-int write_to_fifo(const char *fifo_path, char *data);
+int write_to_fifo(const char *fifo_path, const char *data);
 void cleanup_fifo(const char *fifo_path);
 
 // Функции работы с логами
-int init_log_buffer(log_buffer_t *buffer, int initial_capacity, const char *log_dir);
-int add_to_log_buffer(log_buffer_t *buffer, const char *log_entry);
-int flush_log_buffer(log_buffer_t *buffer);
+pzem_result_t init_log_buffer(log_buffer_t *buffer, int initial_capacity, const char *log_dir);
+pzem_result_t add_to_log_buffer(log_buffer_t *buffer, const char *log_entry);
+pzem_result_t flush_log_buffer(log_buffer_t *buffer);
 void free_log_buffer(log_buffer_t *buffer);
-long long get_time_ms();
+long long get_time_ms(void);
 void get_current_date(char *date_str, size_t size);
 void get_current_time(char *time_str, size_t size);
 void get_log_file_path(char *path, size_t size, const char *log_dir);
@@ -187,20 +214,31 @@ void prepare_log_entry(char *log_entry, size_t size, const pzem_data_t *data);
 int should_flush_buffer(const log_buffer_t *buffer);
 
 // Функции Modbus
-int init_modbus_connection(const pzem_config_t *config);
-int read_pzem_data(pzem_data_t *data);
+pzem_result_t init_modbus_connection(const pzem_config_t *config);
+pzem_result_t read_pzem_data(pzem_data_t *data);
+pzem_result_t read_pzem_data_with_retry(pzem_data_t *data, int max_retries);
 void cleanup(void);
 void safe_reconnect(const pzem_config_t *config);
 
 // Функции обработки данных
-float lsbVal (uint16_t dat);
+float lsbVal(uint16_t dat);
 int values_changed(const pzem_data_t *current, const pzem_data_t *previous, const pzem_config_t *config);
-static void update_threshold_state(float value, char* state, const threshold_config_t* config);
+void update_threshold_state(float value, char* state, const threshold_config_t* config);
 void update_threshold_states(pzem_data_t *data, const pzem_config_t *config);
 int threshold_states_changed(const pzem_data_t *current, const pzem_data_t *previous);
+pzem_result_t validate_thresholds(const pzem_config_t *config);
 
-// Сигналы
+// Сигналы и инициализация
 void signal_handler(int sig);
-void signal_hup(int sig);
+void setup_signal_handlers(void);
+pzem_result_t initialize_system(const char *config_file);
+void initialize_data_structures(pzem_data_t *current, pzem_data_t *previous);
+void process_iteration(pzem_data_t *current, pzem_data_t *previous);
+void update_metrics(performance_metrics_t *metrics, long long iteration_time, 
+                   long long modbus_time, int had_error);
+void print_metrics(const performance_metrics_t *metrics);
+
+// Утилиты
+void safe_free(void **ptr);
 
 #endif
