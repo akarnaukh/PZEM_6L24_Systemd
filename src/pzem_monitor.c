@@ -68,24 +68,25 @@ float lsbVal(uint16_t dat) {
 // Функция извлечения имени конфигурации из пути
 void extract_config_name(const char *config_path) {
     if (!config_path) {
-        STRCPY_SAFE(config_name, "default");
+        snprintf(config_name, sizeof(config_name), "default");
         return;
     }
     
     const char *last_slash = strrchr(config_path, '/');
     const char *basename = last_slash ? last_slash + 1 : config_path;
     
-    size_t len = strlen(basename);
-    const char *dot = strrchr(basename, '.');
+    // Копируем базовое имя
+    strncpy(config_name, basename, sizeof(config_name) - 1);
+    config_name[sizeof(config_name) - 1] = '\0';
+    
+    // Удаляем расширение если нужно
+    char *dot = strrchr(config_name, '.');
     if (dot && (strcmp(dot, ".conf") == 0 || strcmp(dot, ".cfg") == 0)) {
-        len = (size_t)(dot - basename);
+        *dot = '\0';
     }
     
-    size_t copy_len = len < sizeof(config_name) - 1 ? len : sizeof(config_name) - 1;
-    STRNCPY_SAFE(config_name, basename, copy_len);
-    
     if (config_name[0] == '\0') {
-        STRCPY_SAFE(config_name, "default");
+        snprintf(config_name, sizeof(config_name), "default");
     }
 }
 

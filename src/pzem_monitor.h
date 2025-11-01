@@ -50,10 +50,12 @@ THE SOFTWARE.
     dest[sizeof(dest) - 1] = '\0'; \
 } while(0)
 
+/*
 #define STRNCPY_SAFE(dest, src, count) do { \
     strncpy(dest, src, (count) < sizeof(dest) ? (count) : sizeof(dest) - 1); \
     dest[sizeof(dest) - 1] = '\0'; \
 } while(0)
+*/
 
 // Коды возврата
 typedef enum {
