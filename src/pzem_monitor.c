@@ -32,6 +32,7 @@ char *service_name = "pzem3";
 char config_name[64] = "default";
 // Глобальная переменная для FIFO
 char fifo_path[256];
+char device_type = 'U'; // 'U' для UART, 'T' для TCP
 
 // Обработчик сигналов
 void signal_handler(int sig) {
@@ -899,7 +900,7 @@ int init_modbus_connection(const pzem_config_t *config) {
     }
     //ctx = modbus_new_rtu(config->tty_port, config->baudrate, 'N', 8, 1);
     modbus_set_error_recovery(ctx, MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL);
-    
+
     if (ctx == NULL) {
         syslog(LOG_ERR, "Unable to create Modbus context for %s", config->tty_port);
         return -1;
