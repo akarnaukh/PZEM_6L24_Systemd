@@ -1173,10 +1173,18 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
     syslog(LOG_DEBUG, "Debug mode enabled");
 #endif
-    syslog(LOG_INFO, "Config: %s@%d, addr=%d, interval=%dms, thresholds=%s", 
+    if (device_type == 'U') {
+    // UART - используем tty_port и baudrate как скорость
+        syslog(LOG_INFO, "Config: UART %s@%d, addr=%d, interval=%dms, thresholds=%s", 
            global_config.tty_port, global_config.baudrate, global_config.slave_addr, 
            global_config.poll_interval_ms, thresholds);
-
+    } else if (device_type == 'T') {
+        // TCP - используем tty_port как IP и baudrate как порт
+        syslog(LOG_INFO, "Config: TCP %s:%d, addr=%d, interval=%dms, thresholds=%s", 
+           global_config.tty_port, global_config.baudrate, global_config.slave_addr, 
+           global_config.poll_interval_ms, thresholds);
+    }
+    
     if (init_modbus_connection(&global_config) == -1) {
         syslog(LOG_ERR, "Failed to initialize Modbus connection");
         cleanup();
