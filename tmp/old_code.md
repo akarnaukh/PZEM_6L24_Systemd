@@ -201,32 +201,243 @@ int load_config(const char *config_file, pzem_config_t *config) {
     return 0;
 }
 
-// Функция для сравнения значений с учетом чувствительности
-int values_changed(const pzem_data_t *current, const pzem_data_t *previous, const pzem_config_t *config) {
-    if (previous->first_read) return 1;
-    if (current->status != previous->status) return 1;
-    if (fabsf(current->voltage_A - previous->voltage_A) > config->voltage_sensitivity) return 1;
-    if (fabsf(current->voltage_B - previous->voltage_B) > config->voltage_sensitivity) return 1;
-    if (fabsf(current->voltage_C - previous->voltage_C) > config->voltage_sensitivity) return 1;
-
-    if (fabsf(current->current_A - previous->current_A) > config->current_sensitivity) return 1;
-    if (fabsf(current->current_B - previous->current_B) > config->current_sensitivity) return 1;
-    if (fabsf(current->current_C - previous->current_C) > config->current_sensitivity) return 1;
-
-    if (fabsf(current->frequency_A - previous->frequency_A) > config->frequency_sensitivity) return 1;
-    if (fabsf(current->frequency_B - previous->frequency_B) > config->frequency_sensitivity) return 1;
-    if (fabsf(current->frequency_C - previous->frequency_C) > config->frequency_sensitivity) return 1;
-
-    if (fabsf(current->angleV_B - previous->angleV_B) > config->angleV_sensitivity) return 1;
-    if (fabsf(current->angleV_C - previous->angleV_C) > config->angleV_sensitivity) return 1;
-
-    if (fabsf(current->angleI_A - previous->angleI_A) > config->angleI_sensitivity) return 1;
-    if (fabsf(current->angleI_B - previous->angleI_B) > config->angleI_sensitivity) return 1;
-    if (fabsf(current->angleI_C - previous->angleI_C) > config->angleI_sensitivity) return 1;
-
-    if (fabsf(current->power_A - previous->power_A) > config->power_sensitivity) return 1;
-    if (fabsf(current->power_B - previous->power_B) > config->power_sensitivity) return 1;
-    if (fabsf(current->power_C - previous->power_C) > config->power_sensitivity) return 1;
+void update_threshold_states(pzem_data_t *data, const pzem_config_t *config) {
+    // Напряжение A
+    if (config->voltage_high_alarm > 0) {
+        if (data->voltage_A >= config->voltage_high_alarm) {
+            data->voltage_state_A = 'H';
+        } else if (data->voltage_A <= config->voltage_low_alarm) {
+            data->voltage_state_A = 'L';
+        } else if (data->voltage_state_A == 'H' && data->voltage_A > config->voltage_high_warning) {
+            data->voltage_state_A = 'H';
+        } else if (data->voltage_state_A == 'L' && data->voltage_A < config->voltage_low_warning) {
+            data->voltage_state_A = 'L';
+        } else {
+            data->voltage_state_A = 'N';
+        }
+    } else {
+        data->voltage_state_A = 'N';
+    }
     
-    return 0;
+    // Напряжение B
+    if (config->voltage_high_alarm > 0) {
+        if (data->voltage_B >= config->voltage_high_alarm) {
+            data->voltage_state_B = 'H';
+        } else if (data->voltage_B <= config->voltage_low_alarm) {
+            data->voltage_state_B = 'L';
+        } else if (data->voltage_state_B == 'H' && data->voltage_B > config->voltage_high_warning) {
+            data->voltage_state_A = 'H';
+        } else if (data->voltage_state_B == 'L' && data->voltage_B < config->voltage_low_warning) {
+            data->voltage_state_B = 'L';
+        } else {
+            data->voltage_state_B = 'N';
+        }
+    } else {
+        data->voltage_state_B = 'N';
+    }
+
+    // Напряжение C
+    if (config->voltage_high_alarm > 0) {
+        if (data->voltage_C >= config->voltage_high_alarm) {
+            data->voltage_state_C = 'H';
+        } else if (data->voltage_C <= config->voltage_low_alarm) {
+            data->voltage_state_C = 'L';
+        } else if (data->voltage_state_C == 'H' && data->voltage_C > config->voltage_high_warning) {
+            data->voltage_state_C = 'H';
+        } else if (data->voltage_state_C == 'L' && data->voltage_C < config->voltage_low_warning) {
+            data->voltage_state_C = 'L';
+        } else {
+            data->voltage_state_C = 'N';
+        }
+    } else {
+        data->voltage_state_C = 'N';
+    }
+
+    // Ток A
+    if (config->current_high_alarm > 0) {
+        if (data->current_A >= config->current_high_alarm) {
+            data->current_state_A = 'H';
+        } else if (data->current_A <= config->current_low_alarm) {
+            data->current_state_A = 'L';
+        } else if (data->current_state_A == 'H' && data->current_A > config->current_high_warning) {
+            data->current_state_A = 'H';
+        } else if (data->current_state_A == 'L' && data->current_A < config->current_low_warning) {
+            data->current_state_A = 'L';
+        } else {
+            data->current_state_A = 'N';
+        }
+    } else {
+        data->current_state_A = 'N';
+    }
+
+    // Ток B
+    if (config->current_high_alarm > 0) {
+        if (data->current_B >= config->current_high_alarm) {
+            data->current_state_B = 'H';
+        } else if (data->current_B <= config->current_low_alarm) {
+            data->current_state_B = 'L';
+        } else if (data->current_state_B == 'H' && data->current_B > config->current_high_warning) {
+            data->current_state_B = 'H';
+        } else if (data->current_state_B == 'L' && data->current_B < config->current_low_warning) {
+            data->current_state_B = 'L';
+        } else {
+            data->current_state_B = 'N';
+        }
+    } else {
+        data->current_state_B = 'N';
+    }
+    
+    // Ток C
+    if (config->current_high_alarm > 0) {
+        if (data->current_C >= config->current_high_alarm) {
+            data->current_state_C = 'H';
+        } else if (data->current_C <= config->current_low_alarm) {
+            data->current_state_C = 'L';
+        } else if (data->current_state_C == 'H' && data->current_C > config->current_high_warning) {
+            data->current_state_C = 'H';
+        } else if (data->current_state_C == 'L' && data->current_C < config->current_low_warning) {
+            data->current_state_C = 'L';
+        } else {
+            data->current_state_C = 'N';
+        }
+    } else {
+        data->current_state_C = 'N';
+    }
+
+    // Частота A
+    if (config->frequency_high_alarm > 0) {
+        if (data->frequency_A >= config->frequency_high_alarm) {
+            data->frequency_state_A = 'H';
+        } else if (data->frequency_A <= config->frequency_low_alarm) {
+            data->frequency_state_A = 'L';
+        } else if (data->frequency_state_A == 'H' && data->frequency_A > config->frequency_high_warning) {
+            data->frequency_state_A = 'H';
+        } else if (data->frequency_state_A == 'L' && data->frequency_A < config->frequency_low_warning) {
+            data->frequency_state_A = 'L';
+        } else {
+            data->frequency_state_A = 'N';
+        }
+    } else {
+        data->frequency_state_A = 'N';
+    }
+
+    // Частота B
+    if (config->frequency_high_alarm > 0) {
+        if (data->frequency_B >= config->frequency_high_alarm) {
+            data->frequency_state_B = 'H';
+        } else if (data->frequency_B <= config->frequency_low_alarm) {
+            data->frequency_state_B = 'L';
+        } else if (data->frequency_state_B == 'H' && data->frequency_B > config->frequency_high_warning) {
+            data->frequency_state_B = 'H';
+        } else if (data->frequency_state_B == 'L' && data->frequency_B < config->frequency_low_warning) {
+            data->frequency_state_B = 'L';
+        } else {
+            data->frequency_state_B = 'N';
+        }
+    } else {
+        data->frequency_state_B = 'N';
+    }
+
+    // Частота C
+    if (config->frequency_high_alarm > 0) {
+        if (data->frequency_C >= config->frequency_high_alarm) {
+            data->frequency_state_C = 'H';
+        } else if (data->frequency_C <= config->frequency_low_alarm) {
+            data->frequency_state_C = 'L';
+        } else if (data->frequency_state_C == 'H' && data->frequency_C > config->frequency_high_warning) {
+            data->frequency_state_C = 'H';
+        } else if (data->frequency_state_C == 'L' && data->frequency_C < config->frequency_low_warning) {
+            data->frequency_state_C = 'L';
+        } else {
+            data->frequency_state_C = 'N';
+        }
+    } else {
+        data->frequency_state_C = 'N';
+    }
+
+    // Угол фазы напряжения B
+    if (config->angleV_high_alarm > 0) {
+        if (data->angleV_B >= config->angleV_high_alarm) {
+            data->angleV_state_B = 'H';
+        } else if (data->angleV_B <= config->angleV_low_alarm) {
+            data->angleV_state_B = 'L';
+        } else if (data->angleV_state_B == 'H' && data->angleV_B > config->angleV_high_warning) {
+            data->angleV_state_B = 'H';
+        } else if (data->angleV_state_B == 'L' && data->angleV_B < config->angleV_low_warning) {
+            data->angleV_state_B = 'L';
+        } else {
+            data->angleV_state_B = 'N';
+        }
+    } else {
+        data->angleV_state_B = 'N';
+    }
+
+    // Угол фазы напряжения C
+    if (config->angleV_high_alarm > 0) {
+        if (data->angleV_C >= config->angleV_high_alarm) {
+            data->angleV_state_C = 'H';
+        } else if (data->angleV_C <= config->angleV_low_alarm) {
+            data->angleV_state_C = 'L';
+        } else if (data->angleV_state_C == 'H' && data->angleV_C > config->angleV_high_warning) {
+            data->angleV_state_C = 'H';
+        } else if (data->angleV_state_C == 'L' && data->angleV_C < config->angleV_low_warning) {
+            data->angleV_state_C = 'L';
+        } else {
+            data->angleV_state_C = 'N';
+        }
+    } else {
+        data->angleV_state_C = 'N';
+    }
+
+        // Угол фазы тока A
+    if (config->angleI_high_alarm > 0) {
+        if (data->angleI_A >= config->angleI_high_alarm) {
+            data->angleI_state_A = 'H';
+        } else if (data->angleI_A <= config->angleI_low_alarm) {
+            data->angleI_state_A = 'L';
+        } else if (data->angleI_state_A == 'H' && data->angleI_A > config->angleI_high_warning) {
+            data->angleI_state_A = 'H';
+        } else if (data->angleI_state_A == 'L' && data->angleI_A < config->angleI_low_warning) {
+            data->angleI_state_A = 'L';
+        } else {
+            data->angleI_state_A = 'N';
+        }
+    } else {
+        data->angleI_state_A = 'N';
+    }
+
+    // Угол фазы тока B
+    if (config->angleI_high_alarm > 0) {
+        if (data->angleI_B >= config->angleI_high_alarm) {
+            data->angleI_state_B = 'H';
+        } else if (data->angleI_B <= config->angleI_low_alarm) {
+            data->angleI_state_B = 'L';
+        } else if (data->angleI_state_B == 'H' && data->angleI_B > config->angleI_high_warning) {
+            data->angleI_state_B = 'H';
+        } else if (data->angleI_state_B == 'L' && data->angleI_B < config->angleI_low_warning) {
+            data->angleI_state_B = 'L';
+        } else {
+            data->angleI_state_B = 'N';
+        }
+    } else {
+        data->angleI_state_B = 'N';
+    }
+
+    // Угол фазы тока C
+    if (config->angleI_high_alarm > 0) {
+        if (data->angleI_C >= config->angleI_high_alarm) {
+            data->angleI_state_C = 'H';
+        } else if (data->angleI_C <= config->angleI_low_alarm) {
+            data->angleI_state_C = 'L';
+        } else if (data->angleI_state_C == 'H' && data->angleI_C > config->angleI_high_warning) {
+            data->angleI_state_C = 'H';
+        } else if (data->angleI_state_C == 'L' && data->angleI_C < config->angleI_low_warning) {
+            data->angleI_state_C = 'L';
+        } else {
+            data->angleI_state_C = 'N';
+        }
+    } else {
+        data->angleI_state_C = 'N';
+    }
+
 }

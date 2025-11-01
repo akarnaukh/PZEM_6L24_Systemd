@@ -132,6 +132,19 @@ typedef struct {
     
 } pzem_data_t;
 
+// Вспомогательные структуры для обновления состояний порогов
+typedef struct {
+    float value;
+    char* state;
+} threshold_param_t;
+
+typedef struct {
+    float high_alarm;
+    float high_warning;
+    float low_warning;
+    float low_alarm;
+} threshold_config_t;
+
 // Структура для буферизации логов
 typedef struct {
     char **buffer;
@@ -182,6 +195,7 @@ void safe_reconnect(const pzem_config_t *config);
 // Функции обработки данных
 float lsbVal (uint16_t dat);
 int values_changed(const pzem_data_t *current, const pzem_data_t *previous, const pzem_config_t *config);
+static void update_threshold_state(float value, char* state, const threshold_config_t* config);
 void update_threshold_states(pzem_data_t *data, const pzem_config_t *config);
 int threshold_states_changed(const pzem_data_t *current, const pzem_data_t *previous);
 

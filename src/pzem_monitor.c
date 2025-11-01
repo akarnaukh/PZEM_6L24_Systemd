@@ -298,245 +298,84 @@ int should_flush_buffer(const log_buffer_t *buffer) {
 }
 
 // Функция обновления состояний порогов
+// Вспомогательная функция для обработки одного параметра
+static void update_threshold_state(float value, char* state, const threshold_config_t* config) {
+    if (config->high_alarm > 0) {
+        if (value >= config->high_alarm) {
+            *state = 'H';
+        } else if (value <= config->low_alarm) {
+            *state = 'L';
+        } else if (*state == 'H' && value > config->high_warning) {
+            *state = 'H';
+        } else if (*state == 'L' && value < config->low_warning) {
+            *state = 'L';
+        } else {
+            *state = 'N';
+        }
+    } else {
+        *state = 'N';
+    }
+}
+
 void update_threshold_states(pzem_data_t *data, const pzem_config_t *config) {
-    // Напряжение A
-    if (config->voltage_high_alarm > 0) {
-        if (data->voltage_A >= config->voltage_high_alarm) {
-            data->voltage_state_A = 'H';
-        } else if (data->voltage_A <= config->voltage_low_alarm) {
-            data->voltage_state_A = 'L';
-        } else if (data->voltage_state_A == 'H' && data->voltage_A > config->voltage_high_warning) {
-            data->voltage_state_A = 'H';
-        } else if (data->voltage_state_A == 'L' && data->voltage_A < config->voltage_low_warning) {
-            data->voltage_state_A = 'L';
-        } else {
-            data->voltage_state_A = 'N';
-        }
-    } else {
-        data->voltage_state_A = 'N';
-    }
+    // Обработка напряжений
+    threshold_config_t voltage_config = {
+        config->voltage_high_alarm,
+        config->voltage_high_warning,
+        config->voltage_low_warning,
+        config->voltage_low_alarm
+    };
     
-    // Напряжение B
-    if (config->voltage_high_alarm > 0) {
-        if (data->voltage_B >= config->voltage_high_alarm) {
-            data->voltage_state_B = 'H';
-        } else if (data->voltage_B <= config->voltage_low_alarm) {
-            data->voltage_state_B = 'L';
-        } else if (data->voltage_state_B == 'H' && data->voltage_B > config->voltage_high_warning) {
-            data->voltage_state_A = 'H';
-        } else if (data->voltage_state_B == 'L' && data->voltage_B < config->voltage_low_warning) {
-            data->voltage_state_B = 'L';
-        } else {
-            data->voltage_state_B = 'N';
-        }
-    } else {
-        data->voltage_state_B = 'N';
-    }
-
-    // Напряжение C
-    if (config->voltage_high_alarm > 0) {
-        if (data->voltage_C >= config->voltage_high_alarm) {
-            data->voltage_state_C = 'H';
-        } else if (data->voltage_C <= config->voltage_low_alarm) {
-            data->voltage_state_C = 'L';
-        } else if (data->voltage_state_C == 'H' && data->voltage_C > config->voltage_high_warning) {
-            data->voltage_state_C = 'H';
-        } else if (data->voltage_state_C == 'L' && data->voltage_C < config->voltage_low_warning) {
-            data->voltage_state_C = 'L';
-        } else {
-            data->voltage_state_C = 'N';
-        }
-    } else {
-        data->voltage_state_C = 'N';
-    }
-
-    // Ток A
-    if (config->current_high_alarm > 0) {
-        if (data->current_A >= config->current_high_alarm) {
-            data->current_state_A = 'H';
-        } else if (data->current_A <= config->current_low_alarm) {
-            data->current_state_A = 'L';
-        } else if (data->current_state_A == 'H' && data->current_A > config->current_high_warning) {
-            data->current_state_A = 'H';
-        } else if (data->current_state_A == 'L' && data->current_A < config->current_low_warning) {
-            data->current_state_A = 'L';
-        } else {
-            data->current_state_A = 'N';
-        }
-    } else {
-        data->current_state_A = 'N';
-    }
-
-    // Ток B
-    if (config->current_high_alarm > 0) {
-        if (data->current_B >= config->current_high_alarm) {
-            data->current_state_B = 'H';
-        } else if (data->current_B <= config->current_low_alarm) {
-            data->current_state_B = 'L';
-        } else if (data->current_state_B == 'H' && data->current_B > config->current_high_warning) {
-            data->current_state_B = 'H';
-        } else if (data->current_state_B == 'L' && data->current_B < config->current_low_warning) {
-            data->current_state_B = 'L';
-        } else {
-            data->current_state_B = 'N';
-        }
-    } else {
-        data->current_state_B = 'N';
-    }
+    update_threshold_state(data->voltage_A, &data->voltage_state_A, &voltage_config);
+    update_threshold_state(data->voltage_B, &data->voltage_state_B, &voltage_config);
+    update_threshold_state(data->voltage_C, &data->voltage_state_C, &voltage_config);
     
-    // Ток C
-    if (config->current_high_alarm > 0) {
-        if (data->current_C >= config->current_high_alarm) {
-            data->current_state_C = 'H';
-        } else if (data->current_C <= config->current_low_alarm) {
-            data->current_state_C = 'L';
-        } else if (data->current_state_C == 'H' && data->current_C > config->current_high_warning) {
-            data->current_state_C = 'H';
-        } else if (data->current_state_C == 'L' && data->current_C < config->current_low_warning) {
-            data->current_state_C = 'L';
-        } else {
-            data->current_state_C = 'N';
-        }
-    } else {
-        data->current_state_C = 'N';
-    }
-
-    // Частота A
-    if (config->frequency_high_alarm > 0) {
-        if (data->frequency_A >= config->frequency_high_alarm) {
-            data->frequency_state_A = 'H';
-        } else if (data->frequency_A <= config->frequency_low_alarm) {
-            data->frequency_state_A = 'L';
-        } else if (data->frequency_state_A == 'H' && data->frequency_A > config->frequency_high_warning) {
-            data->frequency_state_A = 'H';
-        } else if (data->frequency_state_A == 'L' && data->frequency_A < config->frequency_low_warning) {
-            data->frequency_state_A = 'L';
-        } else {
-            data->frequency_state_A = 'N';
-        }
-    } else {
-        data->frequency_state_A = 'N';
-    }
-
-    // Частота B
-    if (config->frequency_high_alarm > 0) {
-        if (data->frequency_B >= config->frequency_high_alarm) {
-            data->frequency_state_B = 'H';
-        } else if (data->frequency_B <= config->frequency_low_alarm) {
-            data->frequency_state_B = 'L';
-        } else if (data->frequency_state_B == 'H' && data->frequency_B > config->frequency_high_warning) {
-            data->frequency_state_B = 'H';
-        } else if (data->frequency_state_B == 'L' && data->frequency_B < config->frequency_low_warning) {
-            data->frequency_state_B = 'L';
-        } else {
-            data->frequency_state_B = 'N';
-        }
-    } else {
-        data->frequency_state_B = 'N';
-    }
-
-    // Частота C
-    if (config->frequency_high_alarm > 0) {
-        if (data->frequency_C >= config->frequency_high_alarm) {
-            data->frequency_state_C = 'H';
-        } else if (data->frequency_C <= config->frequency_low_alarm) {
-            data->frequency_state_C = 'L';
-        } else if (data->frequency_state_C == 'H' && data->frequency_C > config->frequency_high_warning) {
-            data->frequency_state_C = 'H';
-        } else if (data->frequency_state_C == 'L' && data->frequency_C < config->frequency_low_warning) {
-            data->frequency_state_C = 'L';
-        } else {
-            data->frequency_state_C = 'N';
-        }
-    } else {
-        data->frequency_state_C = 'N';
-    }
-
-    // Угол фазы напряжения B
-    if (config->angleV_high_alarm > 0) {
-        if (data->angleV_B >= config->angleV_high_alarm) {
-            data->angleV_state_B = 'H';
-        } else if (data->angleV_B <= config->angleV_low_alarm) {
-            data->angleV_state_B = 'L';
-        } else if (data->angleV_state_B == 'H' && data->angleV_B > config->angleV_high_warning) {
-            data->angleV_state_B = 'H';
-        } else if (data->angleV_state_B == 'L' && data->angleV_B < config->angleV_low_warning) {
-            data->angleV_state_B = 'L';
-        } else {
-            data->angleV_state_B = 'N';
-        }
-    } else {
-        data->angleV_state_B = 'N';
-    }
-
-    // Угол фазы напряжения C
-    if (config->angleV_high_alarm > 0) {
-        if (data->angleV_C >= config->angleV_high_alarm) {
-            data->angleV_state_C = 'H';
-        } else if (data->angleV_C <= config->angleV_low_alarm) {
-            data->angleV_state_C = 'L';
-        } else if (data->angleV_state_C == 'H' && data->angleV_C > config->angleV_high_warning) {
-            data->angleV_state_C = 'H';
-        } else if (data->angleV_state_C == 'L' && data->angleV_C < config->angleV_low_warning) {
-            data->angleV_state_C = 'L';
-        } else {
-            data->angleV_state_C = 'N';
-        }
-    } else {
-        data->angleV_state_C = 'N';
-    }
-
-        // Угол фазы тока A
-    if (config->angleI_high_alarm > 0) {
-        if (data->angleI_A >= config->angleI_high_alarm) {
-            data->angleI_state_A = 'H';
-        } else if (data->angleI_A <= config->angleI_low_alarm) {
-            data->angleI_state_A = 'L';
-        } else if (data->angleI_state_A == 'H' && data->angleI_A > config->angleI_high_warning) {
-            data->angleI_state_A = 'H';
-        } else if (data->angleI_state_A == 'L' && data->angleI_A < config->angleI_low_warning) {
-            data->angleI_state_A = 'L';
-        } else {
-            data->angleI_state_A = 'N';
-        }
-    } else {
-        data->angleI_state_A = 'N';
-    }
-
-    // Угол фазы тока B
-    if (config->angleI_high_alarm > 0) {
-        if (data->angleI_B >= config->angleI_high_alarm) {
-            data->angleI_state_B = 'H';
-        } else if (data->angleI_B <= config->angleI_low_alarm) {
-            data->angleI_state_B = 'L';
-        } else if (data->angleI_state_B == 'H' && data->angleI_B > config->angleI_high_warning) {
-            data->angleI_state_B = 'H';
-        } else if (data->angleI_state_B == 'L' && data->angleI_B < config->angleI_low_warning) {
-            data->angleI_state_B = 'L';
-        } else {
-            data->angleI_state_B = 'N';
-        }
-    } else {
-        data->angleI_state_B = 'N';
-    }
-
-    // Угол фазы тока C
-    if (config->angleI_high_alarm > 0) {
-        if (data->angleI_C >= config->angleI_high_alarm) {
-            data->angleI_state_C = 'H';
-        } else if (data->angleI_C <= config->angleI_low_alarm) {
-            data->angleI_state_C = 'L';
-        } else if (data->angleI_state_C == 'H' && data->angleI_C > config->angleI_high_warning) {
-            data->angleI_state_C = 'H';
-        } else if (data->angleI_state_C == 'L' && data->angleI_C < config->angleI_low_warning) {
-            data->angleI_state_C = 'L';
-        } else {
-            data->angleI_state_C = 'N';
-        }
-    } else {
-        data->angleI_state_C = 'N';
-    }
-
+    // Обработка токов
+    threshold_config_t current_config = {
+        config->current_high_alarm,
+        config->current_high_warning,
+        config->current_low_warning,
+        config->current_low_alarm
+    };
+    
+    update_threshold_state(data->current_A, &data->current_state_A, &current_config);
+    update_threshold_state(data->current_B, &data->current_state_B, &current_config);
+    update_threshold_state(data->current_C, &data->current_state_C, &current_config);
+    
+    // Обработка частот
+    threshold_config_t frequency_config = {
+        config->frequency_high_alarm,
+        config->frequency_high_warning,
+        config->frequency_low_warning,
+        config->frequency_low_alarm
+    };
+    
+    update_threshold_state(data->frequency_A, &data->frequency_state_A, &frequency_config);
+    update_threshold_state(data->frequency_B, &data->frequency_state_B, &frequency_config);
+    update_threshold_state(data->frequency_C, &data->frequency_state_C, &frequency_config);
+    
+    // Обработка углов напряжения
+    threshold_config_t angleV_config = {
+        config->angleV_high_alarm,
+        config->angleV_high_warning,
+        config->angleV_low_warning,
+        config->angleV_low_alarm
+    };
+    
+    update_threshold_state(data->angleV_B, &data->angleV_state_B, &angleV_config);
+    update_threshold_state(data->angleV_C, &data->angleV_state_C, &angleV_config);
+    
+    // Обработка углов тока
+    threshold_config_t angleI_config = {
+        config->angleI_high_alarm,
+        config->angleI_high_warning,
+        config->angleI_low_warning,
+        config->angleI_low_alarm
+    };
+    
+    update_threshold_state(data->angleI_A, &data->angleI_state_A, &angleI_config);
+    update_threshold_state(data->angleI_B, &data->angleI_state_B, &angleI_config);
+    update_threshold_state(data->angleI_C, &data->angleI_state_C, &angleI_config);
 }
 
 // Функция проверки изменения состояний порогов
@@ -917,6 +756,14 @@ int init_modbus_connection(const pzem_config_t *config) {
         return -1;
     }
     
+    if (device_type == 'U') {
+    // UART - используем tty_port и baudrate как скорость
+        syslog(LOG_INFO, "Modbus RTU connection established to %s@%d", config->tty_port, config->baudrate);
+    } else if (device_type == 'T') {
+        // TCP - используем tty_port как IP и baudrate как порт
+        syslog(LOG_INFO, "Modbus TCP RTU connection established to %s:%d", config->tty_port, config->baudrate);
+    }
+
     syslog(LOG_INFO, "Modbus connection established to %s", config->tty_port);
     return 0;
 }
